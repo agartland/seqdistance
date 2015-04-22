@@ -23,6 +23,8 @@ TODO:
 from Bio.SubsMat.MatrixInfo import blosum90, ident, blosum62
 import numpy as np
 from copy import deepcopy
+from tools import AALPHABET, FULL_AALPHABET
+import itertools
 
 __all__ = ['nanGapScores',
            'nanZeroGapScores',
@@ -39,7 +41,7 @@ __all__ = ['nanGapScores',
            'blosum62']
            
            
-def subst2mat(subst,alphabet = FULL_AALPHABET):
+def subst2mat(subst, alphabet = FULL_AALPHABET):
     """Converts a substitution dictionary
     (like those from Bio) into a numpy 2d substitution matrix"""
     mat = np.nan * np.zeros((len(alphabet),len(alphabet)), dtype = np.float64)
@@ -99,7 +101,7 @@ blosum90GapScores = {('-','-'):5,
                      ('-','X'):-11,
                      ('X','-'):-11}
 
-binarySubst = {(aa1,aa2):np.float64(aa1==aa2) for aa1,aa2 in itertools.product(FULL_AALPHABET,FULL_AALPHABET)}
+binarySubst = {(aa1,aa2):np.float64(aa1==aa2) for aa1,aa2 in itertools.product(AALPHABET, AALPHABET)}
 
 identMat = subst2mat(ident)
 blosum90Mat = subst2mat(blosum90)

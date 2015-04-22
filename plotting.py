@@ -6,11 +6,15 @@ from sklearn.metrics import euclidean_distances
 from sklearn.decomposition import PCA,KernelPCA
 from sklearn import cluster
 from sklearn.manifold import Isomap
-import tsne
-import pytsne
+
+try:
+    import tsne
+    #import pytsne
+except ImportError:
+    print "Could not load tsne: will be unavailable for embedding."
 
 """TODO:
-    (1) Wrap imports in a try so that important doesn't fail without tsne, pytsne, etc.
+    (1) Wrap imports in a try so that important doesn't fail without tsne
     (2) Add the plotting function for visualizing an embedding."""
 
 __all__ = ['embedDistanceMatrix']

@@ -36,11 +36,11 @@ __all__ = ['BADAA',
            'seq2vec',
            'seq_similarity',
            'seq_distance',
-           'seq_similarity_old',
            'unalign_similarity',
            '_test_seq_similarity',
            'calcDistanceMatrix',
-           'calcDistanceRectangle']
+           'calcDistanceRectangle',
+           'aamismatch_distance']
            
 BADAA = '-*BX#Z'
 FULL_AALPHABET = 'ABCDEFGHIKLMNPQRSTVWXYZ-'
@@ -98,6 +98,29 @@ def seqs2mat(seqs):
             mat[si,aai] = AA2CODE[aa]
     return mat
 
+def aamismatch_distance(seq1,seq2, **kwargs):
+    """No substitution matrix used."""
+    if isinstance(seq1,basestring):
+        seq1 = seq2vec(seq1)
+
+    if isinstance(seq2,basestring):
+        seq2 = seq2vec(seq2)
+    dist12 = nb_seq_similarity(seq1, seq2, substMat = binaryMat, normed = False, asDistance = True)
+    return dist12
+
+def hamming_distance(str1, str2, noConvert = False, **kwargs):
+    """Hamming distance between str1 and str2.
+    Only finds distance over the length of the shorter string.
+    **kwargs are so this can be plugged in place of a seq_distance() metric"""
+    if noConvert:
+        return str_hamming_distance(str1,str2)
+
+    if isinstance(str1,basestring):
+        str1 = string2byte(str1)
+    if isinstance(str2,basestring):
+        str2 = string2byte(str2)
+    return nb_hamming_distance(str1, str2)
+
 def seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = False):
     """Compare two sequences and return the similarity of one and the other
     If the seqs are of different length then it raises an exception
@@ -131,48 +154,6 @@ def seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = False):
     return result
 
 
-def seq_similarity_old(seq1,seq2,subst=None,normed=True):
-    """Compare two sequences and return the similarity of one and the other
-    If the seqs are of different length then it raises an exception
-    FOR HIGHLY DIVERGENT SEQUENCES THIS NORMALIZATION DOES NOT GET TO [0,1] BECAUSE OF EXCESS NEGATIVE SCORES!
-    Consider normalizing the matrix first by adding the min() so that min = 0 (but do not normalize per comparison)
-    
-    Return a nansum of site-wise similarities between two sequences based on a substitution matrix
-        [0, siteN] where siteN ignores nan similarities which may depend on gaps
-        sim12 = nansum(2*sim12/(nanmean(sim11) + nanmean(sim22))
-    Optionally specify normed = False:
-        [0, total raw similarity]
-    This returns a score [0, 1] for binary and blosum based similarities
-        otherwise its just the sum of the raw score out of the subst matrix
-    
-    For a hamming similarity when there are no gaps use subst=binarySubst
-        and performance is optimized underneath using hamming_distance"""
-
-    assert len(seq1) == len(seq2), "len of seq1 (%d) and seq2 (%d) are different" % (len(seq1),len(seq2))
-
-    if subst is binarySubst:
-        dist = hamming_distance(seq1,seq2)
-        sim = len(seq1) - dist
-        if normed:
-            sim = sim / len(seq1)
-        return sim
-
-    if subst is None:
-        print 'Using default binarySubst matrix with binGaps for seq_similarity'
-        subst = addGapScores(binarySubst,binGapScores)
-
-    """Distance between seq1 and seq2 using the substitution matrix subst"""
-    sim12 = np.array([i for i in itertools.imap(lambda a,b: subst.get((a,b),subst.get((b,a))), seq1, seq2)])
-
-    if normed:
-        siteN = np.sum(~np.isnan(sim12))
-        sim11 = seq_similarity_old(seq1,seq1,subst=subst,normed=False)/siteN
-        sim22 = seq_similarity_old(seq2,seq2,subst=subst,normed=False)/siteN
-        sim12 = np.nansum(2*sim12/(sim11+sim22))
-    else:
-        sim12 = np.nansum(sim12)
-    return sim12
-    
 def seq_distance(seq1, seq2, subst = None, normed = True):
     """Compare two sequences and return the distance from one to the other
     If the seqs are of different length then it raises an exception
