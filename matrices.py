@@ -10,7 +10,7 @@ converters that go from one to the other:
         ('X', 'Y') : s
         
     (2) Parameters called "substMat" are square 2d np.ndarrays (dtype = np.float64)
-        The indices align with those in the FULL_ALPHABET.
+        The indices align with those in the FULL_AALPHABET.
         TODO: Use pd.DataFrames instead to avoid losing the index. But
               this would not be a feature used by numba or numpy optimized routines,
               just the end user.
@@ -19,12 +19,13 @@ TODO:
     (1) Add suppot for a DNA alphabet and associated matrices.
 
 """
-
 from Bio.SubsMat.MatrixInfo import blosum90, ident, blosum62
 import numpy as np
 from copy import deepcopy
-from tools import AALPHABET, FULL_AALPHABET
 import itertools
+
+from . import FULL_AALPHABET
+from . import AALPHABET
 
 __all__ = ['nanGapScores',
            'nanZeroGapScores',
@@ -43,10 +44,26 @@ __all__ = ['nanGapScores',
            
 def subst2mat(subst, alphabet = FULL_AALPHABET):
     """Converts a substitution dictionary
-    (like those from Bio) into a numpy 2d substitution matrix"""
+    (like those from Bio) into a numpy 2d substitution matrix.
+
+    Assumes the matrix is symetrical,
+    but if its not this will still produce a good copy.
+
+    Missing substitutions are nan.
+
+    Return type is float64"""
     mat = np.nan * np.zeros((len(alphabet),len(alphabet)), dtype = np.float64)
-    for (aa1,aa2),v in subst.items():
-        mat[alphabet.index(aa1),alphabet.index(aa2)] = v
+    ij = np.zeros((len(subst),2),dtype=np.int)
+    for ki,((aa1,aa2),v) in enumerate(subst.items()):
+        i,j = alphabet.index(aa1),alphabet.index(aa2)
+        ij[ki,:] = [i,j]
+        mat[i,j] = v
+    for ki in range(ij.shape[0]):
+        """Go back through all the assignments and make the symetrical assignments
+        if the value is still nan (i.e. otherwise unspecified)"""
+        i,j = ij[ki,0], ij[ki,1]
+        if np.isnan(mat[j,i]):
+            mat[j,i] = mat[i,j]
     return mat
 
 def addGapScores(subst, gapScores = None, minScorePenalty = False, returnMat = False):

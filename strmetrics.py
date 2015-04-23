@@ -8,14 +8,12 @@ d = str_metric(seq1, seq2, **kwargs)
 
 
 """
-
 import matrices
 
-__all__ = ['hamming_distance',
+__all__ = ['str_hamming_distance',
            'trunc_hamming',
            'dichot_hamming',
-           'aamismatch_distance',
-           'coverageDistance',
+           'str_coverage_distance',
            'str_seq_distance',
            'str_seq_similarity']
 
@@ -74,7 +72,7 @@ def str_seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = Fal
         subst = matrices.addGapScores(matrices.binarySubst,matrices.binGapScores)
 
     """Site-wise similarity between seq1 and seq2 using the substitution matrix subst"""
-    sim12 = np.array([i for i in itertools.imap(lambda a,b: subst.get((a,b),subst[(b,a)]), seq1, seq2)])
+    sim12 = np.array([i for i in itertools.imap(lambda a,b: subst.get((a,b),subst.get((b,a),np.nan)), seq1, seq2)])
 
     if normed or asDistance:
         siteN = np.sum(~np.isnan(sim12))
@@ -121,12 +119,10 @@ def str_coverage_distance(epitope, peptide, mmTolerance = 1):
     If epitope is longer than peptide it is not covered.
     Otherwise coverage is determined based on a mmTolerance
 
-    Can accomodate strings or np.arrays (but not a mix).
-
     Parameters
     ----------
-    epitope : str or np.array
-    peptide : str or np.array
+    epitope : str
+    peptide : str
     mmTolerance : int
         Number of mismatches tolerated
         If dist <= mmTolerance then it is covered
@@ -136,16 +132,10 @@ def str_coverage_distance(epitope, peptide, mmTolerance = 1):
     covered : int
         Covered (0) or not-covered (1)"""
 
-    tEpitope, tPeptide = type(epitope), type(peptide)
-    assert tEpitope == tPeptide
-
     LEpitope, LPeptide = len(epitope), len(peptide)
     if LEpitope > LPeptide:
         return 1
 
-    if isinstance(epitope, basestring):
-        min_dist = np.array([np.sum([i for i in itertools.imap(operator.__ne__, epitope, peptide[starti:starti+LEpitope])]) for starti in range(LPeptide-LEpitope+1)]).min()
-    else:
-        min_dist = np.array([(epitope != peptide[starti:starti+LEpitope]).sum() for starti in range(LPeptide-LEpitope+1)]).min()
+    min_dist = np.array([np.sum([i for i in itertools.imap(operator.__ne__, epitope, peptide[starti:starti+LEpitope])]) for starti in range(LPeptide-LEpitope+1)]).min()
     
     return 0 if min_dist <= mmTolerance else 1

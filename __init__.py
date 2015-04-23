@@ -6,13 +6,16 @@ Includes string versions as well as numba and numpy optimized
 functions for computing genetic distances using substitution matrices.
 """
 
-"""Include code here to attempt to import numba and set flags about the success?"""
+global NB_SUCCESS 
+global BADAA
+global FULL_AALPHABET
+global AALPHABET
 
-from tools import *
-import strmetrics
-import plotting
-import npmetrics
-import matrices
+NB_SUCCESS = False
+BADAA = '-*BX#Z'
+"""FULL_AALPHABET is used for indexing substitution matrices so that they are all consistent."""
+FULL_AALPHABET = 'ABCDEFGHIKLMNPQRSTVWXYZ-'
+AALPHABET = 'ACDEFGHIKLMNPQRSTVWY'
 
 try:
     import numba as nb
@@ -25,9 +28,18 @@ except ImportError:
     NB_SUCCESS = False
     print 'Could not load numba'
 
+from tools import *
+import strmetrics
+import plotting
+import npmetrics
+import matrices
 
 __all__ = ['nbmetrics',
            'npmetrics',
            'strmetrics',
            'plotting',
-           'matrices']
+           'matrices',
+           'NB_SUCCESS',
+           'BADAA',
+           'FULL_AALPHABET',
+           'AALPHABET']

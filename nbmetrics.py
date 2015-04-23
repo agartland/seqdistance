@@ -17,17 +17,18 @@ pwdist = nb_dist_rect(seqMat1, seqMat2, substMat, **kwargs)
 
 """
 
-"""TODO: Should some of thes functions be designated as private (with "_")?"""
-
-import numpy as nb
+import numpy as np
 import numba as nb
 
 __all__ = ['nb_hamming_distance',
            'nb_seq_similarity',
-           'distRect']
+           'nb_seq_distance',
+           'nb_coverage_distance']
 
 @nb.jit(nb.int8(nb.char[:],nb.char[:]), nopython = True)
 def nb_hamming_distance(str1,str2):
+    assert str1.shape[0] == str2.shape[0]
+
     tot = 0
     for s1,s2 in zip(str1,str2):
         if s1 != s2:
@@ -38,12 +39,11 @@ def nb_hamming_distance(str1,str2):
 @nb.jit(nopython = True)
 def nb_seq_similarity(seq1, seq2, substMat, normed, asDistance):
     """Computes sequence similarity based on the substitution matrix."""
-    if seq1.shape[0] != seq2.shape[0]:
-        raise IndexError
+    assert seq1.shape[0] == seq2.shape[0]
 
-    if normed or asDistance:
+    if normed:
         sim12 = 0.
-        siteN = 0.
+        site12N = 0.
         sim11 = 0.
         sim22 = 0.
         for i in range(seq1.shape[0]):
@@ -52,64 +52,80 @@ def nb_seq_similarity(seq1, seq2, substMat, normed, asDistance):
             cur22 = substMat[seq2[i],seq2[i]]
             if not np.isnan(cur12):
                 sim12 += cur12
-                siteN += 1.
+                site12N += 1.
             if not np.isnan(cur11):
                 sim11 += cur11
             if not np.isnan(cur22):
                 sim22 += cur22
-        sim12 = 2*sim12/((sim11/siteN) + (sim22/siteN))
+        sim12 = 2*sim12/((sim11/site12N) + (sim22/site12N))
     else:
         sim12 = 0.
-        siteN = 0.
+        site12N = 0.
         for i in range(seq1.shape[0]):
             if not np.isnan(substMat[seq1[i],seq2[i]]):
                 sim12 += substMat[seq1[i],seq2[i]]
-                siteN += 1.
+                site12N += 1.
 
     if asDistance:
         if normed:
-            sim12 = (siteN - sim12)/siteN
+            sim12 = (site12N - sim12)/site12N
         else:
-            sim12 = siteN - sim12
+            sim12 = site12N - sim12
     return sim12
-    
-def distRect_factory(nb_metric): 
-    """Can be passed a numba jit'd distance function and
-    will return a jit'd function for computing all pairwise distances using that function"""
-    @nb.jit(nb.boolean(nb.float64[:,:],nb.int8[:,:],nb.int8[:,:],nb.float64[:,:],nb.boolean),nopython=True) 
-    def nb_distRect(pwdist,rows,cols,substMat,symetric): 
-        n = rows.shape[0] 
-        m = cols.shape[0]
-        for i in range(n): 
-            for j in range(m): 
-                if not symetric:
-                    pwdist[i,j] = nb_seq_similarity(rows[i, :], cols[j, :],substMat=substMat, normed=False, asDistance=True)
-                else:
-                    if j<=i:
-                        pwdist[i,j] = nb_seq_similarity(rows[i, :], cols[j, :],substMat=substMat, normed=False, asDistance=True)
-                        pwdist[j,i] = pwdist[i,j]
-        return True 
-    return nb_distRect
 
-def distRect(row_vecs, col_vecs, substMat, nb_metric, normalize=False, symetric=False):
-    """These conversion will go in a wrapper function with the uniquing business
-    if subst is None:
-        substMat = subst2mat(addGapScores(binarySubst,binGapScores))
-    else:
-        substMat = subst2mat(subst)
+@nb.jit(nopython = True)
+def nb_seq_distance(seq1, seq2, substMat, normed):
+    """Compare two sequences and return the distance from one to the other
+    If the seqs are of different length then it raises an exception
 
-    if nb_metric is None:
-        nb_metric = nb_seq_similarity
+    Returns a scalar [0, siteN] where siteN ignores nan similarities which may depend on gaps
+    Optionally returns normed = True distance:
+        [0, 1]
 
-    row_vecs = seqs2mat(row_seqs)
-    col_vecs = seqs2mat(col_seqs)"""
+    Note that either way the distance is "normed", its either per site (True) or total normed (False):
+        [0, siteN]"""
+    return nb_seq_similarity(seq1, seq2, substMat, normed, True)
 
-    nb_drect = distRect_factory(nb_metric)
-    pwdist = np.zeros((row_vecs.shape[0],col_vecs.shape[0]),dtype=np.float64)
-    success = nb_drect(pwdist, row_vecs, col_vecs, substMat, symetric)
-    assert success
+#@nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.int8), nopython = True)
+@nb.jit(nopython = True)
+def nb_coverage_distance(epitope, peptide, mmTolerance):
+    """Determines whether pepitide covers epitope
+    and can handle epitopes and peptides of different lengths.
 
-    if normalize:
-        pwdist = pwdist - pwdist.min()
-    return pwdist
+    To be a consistent distance matrix:
+        covered = 0
+        not-covered = 1
 
+    If epitope is longer than peptide it is not covered.
+    Otherwise coverage is determined based on a mmTolerance
+
+    Parameters
+    ----------
+    epitope : np.array
+    peptide : np.array
+    mmTolerance : int
+        Number of mismatches tolerated
+        If dist <= mmTolerance then it is covered
+
+    Returns
+    -------
+    covered : int
+        Covered (0) or not-covered (1)"""
+
+    LEpitope, LPeptide = len(epitope), len(peptide)
+    if LEpitope > LPeptide:
+        return 1
+
+    for starti in range(LPeptide-LEpitope+1):
+        mm = 0
+        for k in range(LEpitope):
+            if epitope[k] != peptide[starti + k]:
+                mm = mm + 1
+                if mm > mmTolerance:
+                    """If this peptide is already over the tolerance then goto next one"""
+                    break
+        if mm <= mmTolerance:
+            """If this peptide is below tolerance then return covered (0)"""
+            return 0
+    """If no peptides meet mmTolerance then return not covered"""
+    return 1
