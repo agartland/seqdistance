@@ -217,4 +217,14 @@ class TestNpMetrics(TestNbMetrics):
         TestNbMetrics.test_coverage_distance(self)
     def test_seq_distance(self):
         """np_seq_distance(seqVec1, seqVec2, substMat, normed))"""
-        TestNbMetrics.test_seq_distance(self)        
+        TestNbMetrics.test_seq_distance(self)
+
+class TestDistRect(unittest.TestCase):
+    def setUp(self):
+        self.seq = tools.removeBadAA("ABSJDHKJHDSJHKFJOIWIYOQIJOIRKJHYDAGUMAMOIDNIFNOINTWIDMLKA")
+        self.mers = [self.seq[starti:starti + 9] for starti in range(len(self.seq)-9+1)]
+    def test_run_asstrings(self):
+        pw = tools.distance_rect(self.mers[:10], self.mers[:25], subst = matrices.binarySubst, metric = strmetrics.str_seq_distance, normalize = False, symetric = True)
+        self.assertEqual(pw.shape[0], 10)
+        self.assertEqual(pw.shape[1], 25)
+
