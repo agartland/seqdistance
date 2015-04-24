@@ -47,8 +47,6 @@ __all__ = ['isvalidpeptide',
            'seq_distance',
            'hamming_distance',
            'unalign_similarity',
-           'calcDistanceMatrix',
-           'calcDistanceRectangle_old',
            'distance_rect']
 
 def _unique_rows(a, return_index = False, return_inverse = False, return_counts = False):
@@ -116,7 +114,7 @@ def hamming_distance(str1, str2, asStrings = False):
     """Hamming distance between str1 and str2.
     Inputs are required to be the same length.
     
-    REMOVED **kwargs which were there so that this can be plugged in place of a seq_distance() metric"""
+    REMOVED **kwargs which were there so that this could be plugged in place of a seq_distance() metric"""
 
     if asStrings:
         assert isinstance(str1, basestring), "Seq1 is not a string."
@@ -137,7 +135,6 @@ def hamming_distance(str1, str2, asStrings = False):
         return nbmetrics.nb_hamming_distance(seqVec1, seqVec2)
     else:
         return npmetrics.np_hamming_distance(seqVec1, seqVec2)
-
 
 def seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = False, asStrings = False):
     """Compare two sequences and return the similarity of one and the other 
@@ -200,106 +197,6 @@ def unalign_similarity(seq1, seq2, subst = None):
     res = pairwise2.align.globaldx(seq1, seq2, subst)
     return res[0][2]
 
-
-def calcDistanceMatrix(seqs,normalize=False,symetric=True,metric=None,**kwargs):
-    """Returns a square distance matrix with rows and columns of the unique sequences in seqs
-    By default will normalize by subtracting off the min() to at least get rid of negative distances
-    However, I don't really think this is the best option. 
-    If symetric is True then only calculates dist[i,j] and assumes dist[j,i] == dist[i,j]
-    Additional kwargs are passed to the distanceFunc (e.g. subst, gapScores, normed)
-
-    Parameters
-    ----------
-    seqs : list/iterator
-        Genetic sequences to compare.
-    normalize : bool
-        If true (default: False), subtracts off dist.min() to eliminate negative distances
-        (Could be improved/expanded)
-    symetric : bool
-        If True (default), then it assumes dist(A,B) == dist(B,A) and speeds up computation.
-    metric : function with params seq1, seq2 and possibly additional kwargs
-        Function will be called to compute each pairwise distance.
-    kwargs : additional keyword arguments
-        Will be passed to each call of metric()
-
-    Returns
-    -------
-    dist : ndarray of shape [len(seqs), len(seqs)]
-        Contains all pairwise distances for seqs.
-    """
-    return calcDistanceRectangle_old(seqs,seqs,normalize=normalize,symetric=symetric,metric=metric,**kwargs)
-
-def calcDistanceRectangle_old(row_seqs,col_seqs,normalize=False,symetric=False,metric=None,convertToNP=False,**kwargs):
-    """Returns a rectangular distance matrix with rows and columns of the unique sequences in row_seqs and col_seqs
-    By default will normalize by subtracting off the min() to at least get rid of negative distances
-    However, I don't really think this is the best option. 
-    If symetric is True then only calculates dist[i,j] and assumes dist[j,i] == dist[i,j]
-    
-    Additional kwargs are passed to the distanceFunc (e.g. subst, gapScores, normed)
-
-    Parameters
-    ----------
-    row_seqs : list/iterator
-        Genetic sequences to compare.
-    col_seqs : list/iterator
-        Genetic sequences to compare.
-    normalize : bool
-        If true (default: False), subtracts off dist.min() to eliminate negative distances
-        (Could be improved/expanded)
-    symetric : bool
-        If True (default), then it assumes dist(A,B) == dist(B,A) and speeds up computation.
-    metric : function with params seq1, seq2 and possibly additional kwargs
-        Function will be called to compute each pairwise distance.
-    convertToNP : bool (default: False)
-        If True then strings are converted to np.arrays for speed,
-        but metric will also need to accomodate the arrays as opposed to strings
-    kwargs : additional keyword arguments
-        Will be passed to each call of metric()
-
-    Returns
-    -------
-    dist : ndarray of shape [len(row_seqs), len(col_seqs)]
-        Contains all pairwise distances for seqs.
-    """
-    if not 'normed' in kwargs.keys():
-        kwargs['normed'] = False
-    if metric is None:
-        metric = seq_distance
-
-    """Only compute distances on unique sequences. De-uniquify with inv_uniqi later"""
-    row_uSeqs,row_uniqi,row_inv_uniqi = np.unique(row_seqs,return_index=True,return_inverse=True)
-    col_uSeqs,col_uniqi,col_inv_uniqi = np.unique(col_seqs,return_index=True,return_inverse=True)
-
-    if convertToNP:
-        R = [seq2vec(s) for s in row_uSeqs]
-        C = [seq2vec(s) for s in col_uSeqs]
-    else:
-        R = row_uSeqs
-        C = col_uSeqs
-
-    dist = np.zeros((len(row_uSeqs),len(col_uSeqs)))
-    for i,j in itertools.product(range(len(row_uSeqs)),range(len(col_uSeqs))):
-        if not symetric:
-            """If not assumed symetric, compute all distances"""
-            dist[i,j] = metric(R[i],C[j],**kwargs)
-        else:
-            if j<i:
-                tmp = metric(R[i],C[j],**kwargs)
-                dist[i,j] = tmp
-                dist[j,i] = tmp
-            elif j>i:
-                pass
-            elif j==i:
-                dist[i,j] = metric(R[i],C[j],**kwargs)
-
-    if normalize:
-        dist = dist - dist.min()
-    
-    """De-uniquify such that dist is now shape [len(seqs), len(seqs)]"""
-    dist = dist[row_inv_uniqi,:][:,col_inv_uniqi]
-    return dist
-
-
 def _distance_rect_factory(metric,nargs): 
     """Can be passed a numba jit'd distance function and
     will return a jit'd function for computing all pairwise distances using that function"""
@@ -358,13 +255,12 @@ def _distance_rect_factory(metric,nargs):
         return distance_rect
 
 def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, symetric = False):
-    """Returns a rectangular matrix with rows and columns of the unique sequences in row_seqs and col_seqs
-    Optionally will normalize by subtracting off the min() to eliminate negative distances
-    However, I don't really think this is the best option.
+    """Returns a rectangular matrix with rows and columns of the sequences in row_seqs and col_seqs.
+    
+    Optionally will normalize by subtracting off the min() to eliminate negative distances.
+    (however, this may not be a very good way to normalize many times)
 
     If symetric is True then only calculates dist[i,j] and assumes dist[j,i] == dist[i,j]
-
-    Additional kwargs are passed to the distanceFunc (e.g. subst, gapScores, normed)
 
     Parameters
     ----------
@@ -372,15 +268,17 @@ def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, syme
         Genetic sequences to compare.
     col_seqs : collection
         Genetic sequences to compare.
-    subst : dict or ndarray
-        Similarity matrix for use by the metric. Can be subst or substMat (i.e. dict or ndarray)
-    metric : function or numba jit'd function with params seq1, seq2 (int8) and substMat and kwargs
+    metric : function or numba jit'd function with params seq1, seq2 (int8) and args
         Function will be called to compute each pairwise metric.
+    args : tuple
+        Ordinal arguments to be passed to the metric after seq1 and seq2.
+        Typically includes subst as a dict or a substMat, normed, asDistance, mmTolerance, etc.
     normalize : bool
         If true (default: False), subtracts off min() to eliminate negative values
         (Could be improved/expanded)
     symetric : bool
-        If True (default), then it assumes metric(A,B) == metric(B,A) and speeds up computation.
+        If True (default: False), then it assumes row_seqs and col_seqs are identical
+        and speeds up computation.
 
     Returns
     -------
@@ -392,11 +290,9 @@ def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, syme
     argList = list(args)
 
     if type(args[0]) is dict:
-        subst = args[0]
-        if subst is None:
-            argList[0] = matrices.subst2mat(matrices.addGapScores(matrices.binarySubst, matrices.binGapScores))
-        else:
-            argList[0] = matrices.subst2mat(subst)
+        argList[0] = matrices.subst2mat(args[0])
+    elif args[0] is None:
+        argList[0] = matrices.subst2mat(matrices.addGapScores(matrices.binarySubst, matrices.binGapScores))
 
     if not isinstance(row_seqs,np.ndarray) or not row_seqs.dtype is np.int8:
         row_vecs = seqs2mat(row_seqs)
@@ -409,24 +305,21 @@ def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, syme
         symetric = False
 
     """Only compute distances on unique sequences. De-uniquify with inv_uniqi later"""
-    #uRowVecs,row_uniqi,row_inv_uniqi = _unique_rows(row_vecs,return_index=True,return_inverse=True)
-    #uColVecs,col_uniqi,col_inv_uniqi = _unique_rows(col_vecs,return_index=True,return_inverse=True)
+    uRowVecs, row_uniqi, row_inv_uniqi = _unique_rows(row_vecs,return_index=True,return_inverse=True)
+    uColVecs, col_uniqi, col_inv_uniqi = _unique_rows(col_vecs,return_index=True,return_inverse=True)
 
-    uColVecs = col_vecs
-    uRowVecs = row_vecs
-    
     drectFunc = _distance_rect_factory(metric, nargs)
     
     pw = np.zeros((uRowVecs.shape[0],uColVecs.shape[0]),dtype = np.float64)
 
-    success = drectFunc(pw, symetric, row_vecs, col_vecs, *tuple(argList))
+    success = drectFunc(pw, symetric, uRowVecs, uColVecs, *tuple(argList))
     assert success
 
     if normalize:
         pw = pw - pw.min()
 
     """De-uniquify such that dist is now shape [len(seqs1), len(seqs2)]"""
-    #pw = pw[row_inv_uniqi,:][:,col_inv_uniqi]
+    pw = pw[row_inv_uniqi,:][:,col_inv_uniqi]
 
     return pw
 
