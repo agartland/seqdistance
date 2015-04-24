@@ -300,28 +300,64 @@ def calcDistanceRectangle_old(row_seqs,col_seqs,normalize=False,symetric=False,m
     return dist
 
 
-def _distance_rect_factory(metric): 
+def _distance_rect_factory(metric,nargs): 
     """Can be passed a numba jit'd distance function and
     will return a jit'd function for computing all pairwise distances using that function"""
 
-    def distance_rect(pwdist,symetric,seq_vecs1,seq_vecs2,*args): 
+    def distance_rect0(pwdist,symetric,seq_vecs1,seq_vecs2): 
         n,m = pwdist.shape
         for i in range(n): 
             for j in range(m): 
                 if not symetric:
-                    pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], *args)
+                    pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:])
                 else:
                     if j <= i:
-                        pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], *args)
+                        pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:])
+                        pwdist[j,i] = pwdist[i,j]
+        return True
+    def distance_rect1(pwdist,symetric,seq_vecs1,seq_vecs2,arg1): 
+        n,m = pwdist.shape
+        for i in range(n): 
+            for j in range(m): 
+                if not symetric:
+                    pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1)
+                else:
+                    if j <= i:
+                        pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1)
+                        pwdist[j,i] = pwdist[i,j]
+        return True
+    def distance_rect2(pwdist,symetric,seq_vecs1,seq_vecs2,arg1,arg2): 
+        n,m = pwdist.shape
+        for i in range(n): 
+            for j in range(m): 
+                if not symetric:
+                    pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2)
+                else:
+                    if j <= i:
+                        pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2)
+                        pwdist[j,i] = pwdist[i,j]
+        return True
+    def distance_rect3(pwdist,symetric,seq_vecs1,seq_vecs2,arg1,arg2,arg3): 
+        n,m = pwdist.shape
+        for i in range(n): 
+            for j in range(m): 
+                if not symetric:
+                    pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2, arg3)
+                else:
+                    if j <= i:
+                        pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2, arg3)
                         pwdist[j,i] = pwdist[i,j]
         return True
 
+    distance_rect = [distance_rect0,distance_rect1,distance_rect2,distance_rect3][nargs]
+    
     if isinstance(metric,nb.targets.registry.CPUOverloaded):
-        return nb.jit(distance_rect,nopython=True) 
+        #return distance_rect
+        return nb.jit(distance_rect, nopython=True) 
     else:
         return distance_rect
 
-def distance_rect(row_seqs, col_seqs, subst, metric, args = (), normalize = False, symetric = False):
+def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, symetric = False):
     """Returns a rectangular matrix with rows and columns of the unique sequences in row_seqs and col_seqs
     Optionally will normalize by subtracting off the min() to eliminate negative distances
     However, I don't really think this is the best option.
@@ -350,11 +386,17 @@ def distance_rect(row_seqs, col_seqs, subst, metric, args = (), normalize = Fals
     -------
     pw : ndarray of shape [len(row_seqs), len(col_seqs)]
         Contains all pairwise metrics for seqs."""
+    
+    nargs = len(args)
 
-    if subst is None:
-        substMat = matrices.subst2mat(matrices.addGapScores(matrices.binarySubst, matrices.binGapScores))
-    else:
-        substMat = matrices.subst2mat(subst)
+    argList = list(args)
+
+    if type(args[0]) is dict:
+        subst = args[0]
+        if subst is None:
+            argList[0] = matrices.subst2mat(matrices.addGapScores(matrices.binarySubst, matrices.binGapScores))
+        else:
+            argList[0] = matrices.subst2mat(subst)
 
     if not isinstance(row_seqs,np.ndarray) or not row_seqs.dtype is np.int8:
         row_vecs = seqs2mat(row_seqs)
@@ -373,11 +415,11 @@ def distance_rect(row_seqs, col_seqs, subst, metric, args = (), normalize = Fals
     uColVecs = col_vecs
     uRowVecs = row_vecs
     
-    drectFunc = _distance_rect_factory(metric)
+    drectFunc = _distance_rect_factory(metric, nargs)
     
     pw = np.zeros((uRowVecs.shape[0],uColVecs.shape[0]),dtype = np.float64)
 
-    success = drectFunc(pw, symetric, row_vecs, col_vecs, substMat, *args)
+    success = drectFunc(pw, symetric, row_vecs, col_vecs, *tuple(argList))
     assert success
 
     if normalize:

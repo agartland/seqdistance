@@ -16,6 +16,9 @@ pwdist = nb_dist_rect(seqMat1, seqMat2, substMat, **kwargs)
 
 
 """
+
+"""NOTE: The default kwargs used here will not jit with numba as of version 0.18.2"""
+
 import numpy as np
 
 """Can assume NB_SUCCESS is True if this module is imported at all."""

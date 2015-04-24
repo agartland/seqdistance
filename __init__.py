@@ -28,6 +28,7 @@ try:
     os.chdir(targetDir)
     import numba as nb
     import nbmetrics
+    print 'Successfully imported numba version %s' % (nb.__version__)
     NB_SUCCESS = True
 except WindowsError:
     NB_SUCCESS = False
