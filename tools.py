@@ -23,15 +23,20 @@ based on each residue's position in the FULL_AALPHABET.
 
 """
 import numpy as np
-import numba as nb
 import re
 from Bio import pairwise2
 import matrices
 import npmetrics
-import nbmetrics
 import strmetrics
 from . import FULL_AALPHABET
 from . import BADAA
+from . import NB_SUCCESS
+
+if NB_SUCCESS:
+    from . import nb
+    import nbmetrics
+else:
+    nb = None
 
 __all__ = ['isvalidpeptide',
            'removeBadAA',
@@ -45,6 +50,19 @@ __all__ = ['isvalidpeptide',
            'calcDistanceMatrix',
            'calcDistanceRectangle_old',
            'distance_rect']
+
+def _unique_rows(a, return_index = False, return_inverse = False, return_counts = False):
+    """Performs np.unique on whole rows of matrix a using a "view".
+    See http://stackoverflow.com/a/16971324/74616"""
+    dummy,uniqi,inv_uniqi,counts = np.unique(a.view(a.dtype.descr * a.shape[1]), return_index = True, return_inverse = True, return_counts = True)
+    out = [a[uniqi,:]]
+    if return_index:
+        out.append(uniqi)
+    if return_inverse:
+        out.append(inv_uniqi)
+    if return_counts:
+        out.append(counts)
+    return tuple(out)
            
 def isvalidpeptide(mer, badaa = None):
     """Test if the mer contains an BAD amino acids in global BADAA
@@ -276,6 +294,7 @@ def calcDistanceRectangle_old(row_seqs,col_seqs,normalize=False,symetric=False,m
 
     if normalize:
         dist = dist - dist.min()
+    
     """De-uniquify such that dist is now shape [len(seqs), len(seqs)]"""
     dist = dist[row_inv_uniqi,:][:,col_inv_uniqi]
     return dist
@@ -285,16 +304,15 @@ def _distance_rect_factory(metric):
     """Can be passed a numba jit'd distance function and
     will return a jit'd function for computing all pairwise distances using that function"""
 
-    def distance_rect(pwdist,symetric,*args): 
-        n = rows.shape[0] 
-        m = cols.shape[0]
+    def distance_rect(pwdist,symetric,seq_vecs1,seq_vecs2,*args): 
+        n,m = pwdist.shape
         for i in range(n): 
             for j in range(m): 
                 if not symetric:
-                    pwdist[i,j] = metric(*args)
+                    pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], *args)
                 else:
-                    if j<=i:
-                        pwdist[i,j] = metric(*args)
+                    if j <= i:
+                        pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], *args)
                         pwdist[j,i] = pwdist[i,j]
         return True
 
@@ -303,20 +321,13 @@ def _distance_rect_factory(metric):
     else:
         return distance_rect
 
-def distance_rect(row_seqs, col_seqs, subst, metric, normalize = False, symetric = False, **kwargs):
+def distance_rect(row_seqs, col_seqs, subst, metric, args = (), normalize = False, symetric = False):
     """Returns a rectangular matrix with rows and columns of the unique sequences in row_seqs and col_seqs
-    By default will normalize by subtracting off the min() to at least get rid of negative distances
-    However, I don't really think this is the best option. 
+    Optionally will normalize by subtracting off the min() to eliminate negative distances
+    However, I don't really think this is the best option.
+
     If symetric is True then only calculates dist[i,j] and assumes dist[j,i] == dist[i,j]
 
-    TODO:
-    (1) Wrap this function around dist rect functins below.
-    (2) Define a coverage nb_metric
-    (3) Come up with a back-up plan for when numba import fails...
-        (Not jit'ing is not a good option because it will be super slow!
-            There need to be numpy equivalent functions as back-up...)
-
-    
     Additional kwargs are passed to the distanceFunc (e.g. subst, gapScores, normed)
 
     Parameters
@@ -348,23 +359,23 @@ def distance_rect(row_seqs, col_seqs, subst, metric, normalize = False, symetric
     if not isinstance(row_seqs,np.ndarray) or not row_seqs.dtype is np.int8:
         row_vecs = seqs2mat(row_seqs)
         col_vecs = seqs2mat(col_seqs)
-        tryUnique = True
     else:
         row_vecs = row_seqs
         col_vecs = col_seqs
-        tryUnique = False
 
-    if tryUnique:
-        """Only compute distances on unique sequences. De-uniquify with inv_uniqi later"""
-        uRowVecs,row_uniqi,row_inv_uniqi = np.unique(row_seqs,return_index=True,return_inverse=True)
-        uColVecs,col_uniqi,col_inv_uniqi = np.unique(col_seqs,return_index=True,return_inverse=True)
-    else:
-        uRowVecs = row_vecs
-        uColVecs = col_vecs
+    if row_vecs.shape[0] != col_vecs.shape[0]:
+        symetric = False
 
+    """Only compute distances on unique sequences. De-uniquify with inv_uniqi later"""
+    #uRowVecs,row_uniqi,row_inv_uniqi = _unique_rows(row_vecs,return_index=True,return_inverse=True)
+    #uColVecs,col_uniqi,col_inv_uniqi = _unique_rows(col_vecs,return_index=True,return_inverse=True)
+
+    uColVecs = col_vecs
+    uRowVecs = row_vecs
+    
     drectFunc = _distance_rect_factory(metric)
     
-    pw = np.zeros((uRowVecs.shape[0],uRowVecs.shape[0]),dtype = np.float64)
+    pw = np.zeros((uRowVecs.shape[0],uColVecs.shape[0]),dtype = np.float64)
 
     success = drectFunc(pw, symetric, row_vecs, col_vecs, substMat, *args)
     assert success
@@ -372,9 +383,8 @@ def distance_rect(row_seqs, col_seqs, subst, metric, normalize = False, symetric
     if normalize:
         pw = pw - pw.min()
 
-    if tryUnique:
-        """De-uniquify such that dist is now shape [len(seqs), len(seqs)]"""
-        pw = pw[row_inv_uniqi,:][:,col_inv_uniqi]
+    """De-uniquify such that dist is now shape [len(seqs1), len(seqs2)]"""
+    #pw = pw[row_inv_uniqi,:][:,col_inv_uniqi]
 
     return pw
 

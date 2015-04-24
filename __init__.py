@@ -17,7 +17,15 @@ BADAA = '-*BX#Z'
 FULL_AALPHABET = 'ABCDEFGHIKLMNPQRSTVWXYZ-'
 AALPHABET = 'ACDEFGHIKLMNPQRSTVWY'
 
+import os
+import sys
+
 try:
+    """On Windows it is neccessary to be on the same drive as the LLVM DLL
+    in order to import numba without generating a "Windows Error 161: The specified path is invalid."""
+    curDir = os.getcwd()
+    targetDir = os.path.splitdrive(sys.executable)[0]
+    os.chdir(targetDir)
     import numba as nb
     import nbmetrics
     NB_SUCCESS = True
@@ -27,6 +35,8 @@ except WindowsError:
 except ImportError:
     NB_SUCCESS = False
     print 'Could not load numba'
+finally:
+    os.chdir(curDir)
 
 from tools import *
 import strmetrics
@@ -34,8 +44,7 @@ import plotting
 import npmetrics
 import matrices
 
-__all__ = ['nbmetrics',
-           'npmetrics',
+__all__ = ['npmetrics',
            'strmetrics',
            'plotting',
            'matrices',
@@ -43,3 +52,5 @@ __all__ = ['nbmetrics',
            'BADAA',
            'FULL_AALPHABET',
            'AALPHABET']
+if NB_SUCCESS:
+    __all__.append('nbmetrics')

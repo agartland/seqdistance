@@ -30,7 +30,7 @@ def np_hamming_distance(seqVec1, seqVec2):
     assert seqVec1.shape[0] == seqVec2.shape[0], "Inputs must have the same length."
     return (seqVec1 != seqVec2).sum()
 
-def np_seq_similarity(seq1, seq2, substMat, normed, asDistance):
+def np_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
     """Computes sequence similarity based on the substitution matrix."""
     assert seq1.shape[0] == seq2.shape[0], "Sequences must be the same length (%d != %d)." % (seq1.shape[0],seq2.shape[0])
 
@@ -58,7 +58,7 @@ def np_seq_similarity(seq1, seq2, substMat, normed, asDistance):
             tot12 = siteN - tot12
     return tot12
 
-def np_seq_distance(seqVec1, seqVec2, substMat = None, normed = True):
+def np_seq_distance(seqVec1, seqVec2, substMat = None, normed = False):
     """Compare two sequences and return the distance from one to the other
     If the seqs are of different length then it raises an exception
 
@@ -70,7 +70,7 @@ def np_seq_distance(seqVec1, seqVec2, substMat = None, normed = True):
         [0, siteN]"""
     return np_seq_similarity(seqVec1, seqVec2, substMat = substMat, normed = normed, asDistance = True)
     
-def np_coverage_distance(epitope, peptide, mmTolerance):
+def np_coverage_distance(epitope, peptide, mmTolerance = 0):
     """Determines whether pepitide covers epitope
     and can handle epitopes and peptides of different lengths.
 

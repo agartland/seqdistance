@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 
 from . import FULL_AALPHABET
+from . import NB_SUCCESS
 import tools
 import strmetrics
 import nbmetrics
@@ -154,17 +155,36 @@ class TestStrMetrics(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             strmetrics.str_seq_distance('AAAA', '-AAA', s)
+    def test_unique_rows(self):
+        """_unique_rows(a, return_index = False, return_inverse = False, return_counts = False)"""
+        arr = np.array([[1,2,3,4],
+                        [2,3,3,3],
+                        [1,3,3,2],
+                        [1,2,3,4],
+                        [1,2,3,4],
+                        [2,3,3,3]],dtype=np.int8)
 
-class TestNbMetrics(unittest.TestCase):
-    """Numba metrics"""
+        arr_eq = np.array([1,3,2,1,1,3])
+
+        u_arr = tools._unique_rows(arr)
+        u_arr2, uniqi_arr, inv_uniqi_arr, counts_arr = tools._unique_rows(arr, return_index = True, return_inverse = True, return_counts = True)
+        self.assertTrue(np.all(np.equal(u_arr,u_arr2)))        
+        u_eq, uniqi_eq, inv_uniqi_eq, counts_eq = np.unique(arr_eq, return_index = True, return_inverse = True, return_counts = True)
+        self.assertTrue(np.all(np.equal(uniqi_arr,uniqi_eq)), msg="%s - %s" % (uniqi_arr, uniqi_eq))
+        self.assertTrue(np.all(np.equal(inv_uniqi_arr,inv_uniqi_eq)))
+        self.assertTrue(np.all(np.equal(counts_arr,counts_eq)))
+        self.assertTrue(np.all(np.equal(arr[uniqi_arr,:],u_arr)))
+
+class TestNpMetrics(unittest.TestCase):
+    """Numpy metrics"""
     def setUp(self):
-        self.hamming = nbmetrics.nb_hamming_distance
-        self.seq_similarity = nbmetrics.nb_seq_similarity
-        self.coverage_distance = nbmetrics.nb_coverage_distance
-        self.seq_distance = nbmetrics.nb_seq_distance
+        self.hamming = npmetrics.np_hamming_distance
+        self.seq_similarity = npmetrics.np_seq_similarity
+        self.coverage_distance = npmetrics.np_coverage_distance
+        self.seq_distance = npmetrics.np_seq_distance
 
     def test_hamming_distance(self):
-        """nb_hamming_distance(seqVec1, seqVec2)"""
+        """np_hamming_distance(seqVec1, seqVec2)"""
         for args, res in hamming_equals:
             """Check each case against the strmetric"""
             self.assertEqual(self.hamming(seq2vec(args[0]),seq2vec(args[1])),
@@ -174,7 +194,7 @@ class TestNbMetrics(unittest.TestCase):
             self.hamming(seq2vec('AAAA'),seq2vec('AA'))
 
     def test_seq_similarity(self):
-        """nb_seq_similarity(seqVec1, seqVec2, substMat, normed, asDistance))"""
+        """np_seq_similarity(seqVec1, seqVec2, substMat, normed, asDistance))"""
         for i,(args, res) in enumerate(similarity_equals):
             """Check each case against the strmetric"""
             if args[2] is None:
@@ -184,13 +204,13 @@ class TestNbMetrics(unittest.TestCase):
             self.assertEqual(self.seq_similarity(seq2vec(args[0]),seq2vec(args[1]),sMat,args[3],False),
                              strmetrics.str_seq_similarity(*args), msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
     def test_coverage_distance(self):
-        """nb_coverage_distance(seqVec1, seqVec2, mmTolerance))"""
+        """np_coverage_distance(seqVec1, seqVec2, mmTolerance))"""
         for i, (args, res) in enumerate(coverage_equals):
             """Check each case against the strmetric"""
             self.assertEqual(self.coverage_distance(seq2vec(args[0]),seq2vec(args[1]),args[2]),
                              strmetrics.str_coverage_distance(*args), msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
     def test_seq_distance(self):
-        """nb_seq_distance(seqVec1, seqVec2, substMat, normed))"""
+        """np_seq_distance(seqVec1, seqVec2, substMat, normed))"""
         for i,(args, res) in enumerate(distance_equals):
             """Check each case against the strmetric"""
             if args[2] is None:
@@ -199,32 +219,54 @@ class TestNbMetrics(unittest.TestCase):
                 sMat = matrices.subst2mat(args[2])
             self.assertEqual(self.seq_distance(seq2vec(args[0]),seq2vec(args[1]),sMat,args[3]),
                              strmetrics.str_seq_distance(*args), msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
-class TestNpMetrics(TestNbMetrics):
-    """Numpy metrics"""
-    def setUp(self):
-        self.hamming = npmetrics.np_hamming_distance
-        self.seq_similarity = npmetrics.np_seq_similarity
-        self.coverage_distance = npmetrics.np_coverage_distance
-        self.seq_distance = npmetrics.np_seq_distance
-    def test_hamming_distance(self):
-        """np_hamming_distance(seqVec1, seqVec2)"""
-        TestNbMetrics.test_hamming_distance(self)
-    def test_seq_similarity(self):
-        """np_seq_similarity(seqVec1, seqVec2, substMat, normed, asDistance))"""
-        TestNbMetrics.test_seq_similarity(self)
-    def test_coverage_distance(self):
-        """np_coverage_distance(seqVec1, seqVec2, mmTolerance))"""
-        TestNbMetrics.test_coverage_distance(self)
-    def test_seq_distance(self):
-        """np_seq_distance(seqVec1, seqVec2, substMat, normed))"""
-        TestNbMetrics.test_seq_distance(self)
+if NB_SUCCESS:
+    """Don't try to test the numba metrics if numba could not be imported"""
+    class TestNbMetrics(TestNpMetrics):
+        """Numba metrics"""
+        def setUp(self):
+            self.hamming = nbmetrics.nb_hamming_distance
+            self.seq_similarity = nbmetrics.nb_seq_similarity
+            self.coverage_distance = nbmetrics.nb_coverage_distance
+            self.seq_distance = nbmetrics.nb_seq_distance
+        def test_hamming_distance(self):
+            """nb_hamming_distance(seqVec1, seqVec2)"""
+            TestNpMetrics.test_hamming_distance(self)
+        def test_seq_similarity(self):
+            """nb_seq_similarity(seqVec1, seqVec2, substMat, normed, asDistance))"""
+            TestNpMetrics.test_seq_similarity(self)
+        def test_coverage_distance(self):
+            """nb_coverage_distance(seqVec1, seqVec2, mmTolerance))"""
+            TestNpMetrics.test_coverage_distance(self)
+        def test_seq_distance(self):
+            """nb_seq_distance(seqVec1, seqVec2, substMat, normed))"""
+            TestNpMetrics.test_seq_distance(self)
 
 class TestDistRect(unittest.TestCase):
     def setUp(self):
-        self.seq = tools.removeBadAA("ABSJDHKJHDSJHKFJOIWIYOQIJOIRKJHYDAGUMAMOIDNIFNOINTWIDMLKA")
+        self.seq = tools.removeBadAA("MGARASVLSGGELDRWEKIRLRPGGKKKYKLKHIVWASRELERFAVNPGL")
         self.mers = [self.seq[starti:starti + 9] for starti in range(len(self.seq)-9+1)]
-    def test_run_asstrings(self):
-        pw = tools.distance_rect(self.mers[:10], self.mers[:25], subst = matrices.binarySubst, metric = strmetrics.str_seq_distance, normalize = False, symetric = True)
+    def test_numpy(self):
+        """numpy non-optimized"""
+        pw = tools.distance_rect(self.mers[:10],
+                                 self.mers[:25],
+                                 subst = matrices.binarySubst,
+                                 metric = npmetrics.np_seq_distance,
+                                 normalize = False,
+                                 symetric = False)
         self.assertEqual(pw.shape[0], 10)
         self.assertEqual(pw.shape[1], 25)
+        self.assertTrue(np.all(np.equal(np.array([0.,9.,8.,8.,9.,8.,9.,9.,8.,8.]), pw[0,:10])),msg = "%s" % pw[0,:10])
+        self.assertTrue(np.all(np.equal(pw[:10,0], pw[0,:10])))
+    def test_numba(self):
+        """numba optimized"""
+        pw = tools.distance_rect(self.mers[:10],
+                                 self.mers[:25],
+                                 subst = matrices.binarySubst,
+                                 metric = nbmetrics.nb_seq_distance,
+                                 normalize = False,
+                                 symetric = False)
+        self.assertEqual(pw.shape[0], 10)
+        self.assertEqual(pw.shape[1], 25)
+        self.assertTrue(np.all(np.equal(np.array([0.,9.,8.,8.,9.,8.,9.,9.,8.,8.]), pw[0,:10])))
+        self.assertTrue(np.all(np.equal(pw[:10,0], pw[0,:10])))
 

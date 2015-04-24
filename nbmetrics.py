@@ -16,9 +16,11 @@ pwdist = nb_dist_rect(seqMat1, seqMat2, substMat, **kwargs)
 
 
 """
-
 import numpy as np
-import numba as nb
+
+"""Can assume NB_SUCCESS is True if this module is imported at all."""
+from . import NB_SUCCESS
+from . import nb
 
 __all__ = ['nb_hamming_distance',
            'nb_seq_similarity',
@@ -37,7 +39,7 @@ def nb_hamming_distance(str1,str2):
 
 #@nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.float64[:,:],nb.boolean,nb.boolean), nopython = True)
 @nb.jit(nopython = True)
-def nb_seq_similarity(seq1, seq2, substMat, normed, asDistance):
+def nb_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
     """Computes sequence similarity based on the substitution matrix."""
     assert seq1.shape[0] == seq2.shape[0]
 
@@ -74,7 +76,7 @@ def nb_seq_similarity(seq1, seq2, substMat, normed, asDistance):
     return sim12
 
 @nb.jit(nopython = True)
-def nb_seq_distance(seq1, seq2, substMat, normed):
+def nb_seq_distance(seq1, seq2, substMat, normed = False):
     """Compare two sequences and return the distance from one to the other
     If the seqs are of different length then it raises an exception
 
@@ -88,7 +90,7 @@ def nb_seq_distance(seq1, seq2, substMat, normed):
 
 #@nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.int8), nopython = True)
 @nb.jit(nopython = True)
-def nb_coverage_distance(epitope, peptide, mmTolerance):
+def nb_coverage_distance(epitope, peptide, mmTolerance = 0):
     """Determines whether pepitide covers epitope
     and can handle epitopes and peptides of different lengths.
 
