@@ -294,7 +294,7 @@ def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, syme
         elif args[0] is None:
             argList[0] = matrices.subst2mat(matrices.addGapScores(matrices.binarySubst, matrices.binGapScores))
 
-    if not isinstance(row_seqs,np.ndarray) or not row_seqs.dtype is np.int8:
+    if not isinstance(row_seqs,np.ndarray) or not row_seqs.dtype == np.int8:
         row_vecs = seqs2mat(row_seqs)
         col_vecs = seqs2mat(col_seqs)
     else:
