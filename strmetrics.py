@@ -50,9 +50,7 @@ def str_seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = Fal
         sim12 = nansum(2*sim12/(nanmean(sim11) + nanmean(sim22))
     Optionally specify normed = False:
         [0, total raw similarity]
-    This returns a score [0, 1] for binary and blosum based similarities
-        otherwise its just the sum of the raw score out of the subst matrix
-    
+        
     Optionally return a distance instead of a similarity.
     Distance between seq1 and seq2 using the substitution matrix subst
     because seq_similarity returns a total similarity with max of siteN (not per site), we use
@@ -78,9 +76,14 @@ def str_seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = Fal
         siteN = np.sum(~np.isnan(sim12))
 
     if normed:
-        sim11 = str_seq_similarity(seq1, seq1, subst=subst, normed=False) / siteN
-        sim22 = str_seq_similarity(seq2, seq2, subst=subst, normed=False) / siteN
-        tot12 = np.nansum(2*sim12/(sim11+sim22))
+        sim11 = np.array([i for i in itertools.imap(lambda a,b: subst.get((a,b),subst.get((b,a),np.nan)), seq1, seq1)])
+        sim22 = np.array([i for i in itertools.imap(lambda a,b: subst.get((a,b),subst.get((b,a),np.nan)), seq2, seq2)])
+        site11N = np.sum(~np.isnan(sim11))
+        site22N = np.sum(~np.isnan(sim22))
+        if site11N == 0 or site22N == 0:
+            tot12 = np.nan
+        else:
+            tot12 = np.nansum(2*sim12/(np.nansum(sim11)/site11N + np.nansum(sim22)/site22N))
     else:
         tot12 = np.nansum(sim12)
 

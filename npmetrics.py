@@ -41,9 +41,13 @@ def np_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
         siteN = (~np.isnan(sim12)).sum()
 
     if normed:
-        sim11 = np.nansum(substMat[seq1,seq1])/siteN
-        sim22 = np.nansum(substMat[seq2,seq2])/siteN
-        tot12 = 2*np.nansum(sim12)/(sim11+sim22)
+        sim11 = substMat[seq1,seq1]
+        sim22 = substMat[seq2,seq2]
+
+        site11N = (~np.isnan(sim11)).sum()
+        site22N = (~np.isnan(sim22)).sum()
+
+        tot12 = 2*np.nansum(sim12)/(np.nansum(sim11)/site11N + np.nansum(sim22)/site22N)
     else:
         tot12 = np.nansum(sim12)
 

@@ -45,9 +45,12 @@ def nb_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
     """Computes sequence similarity based on the substitution matrix."""
     assert seq1.shape[0] == seq2.shape[0]
 
+    site12N = 0.
     if normed:
+        site11N = 0.
+        site22N = 0.
+
         sim12 = 0.
-        site12N = 0.
         sim11 = 0.
         sim22 = 0.
         for i in range(seq1.shape[0]):
@@ -59,23 +62,32 @@ def nb_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
                 site12N += 1.
             if not np.isnan(cur11):
                 sim11 += cur11
+                site11N += 1.
             if not np.isnan(cur22):
                 sim22 += cur22
-        sim12 = 2*sim12/((sim11/site12N) + (sim22/site12N))
+                site22N += 1.
+        if site11N == 0 or site22N == 0:
+            sim12 = np.nan
+        else:
+            sim12 = 2*sim12/((sim11/site11N) + (sim22/site22N))
     else:
         sim12 = 0.
-        site12N = 0.
         for i in range(seq1.shape[0]):
-            if not np.isnan(substMat[seq1[i],seq2[i]]):
-                sim12 += substMat[seq1[i],seq2[i]]
+            cur12 = substMat[seq1[i],seq2[i]]
+            if not np.isnan(cur12):
+                sim12 += cur12
                 site12N += 1.
 
     if asDistance:
         if normed:
-            sim12 = (site12N - sim12)/site12N
+            if site12N == 0.:
+                sim12 = np.nan
+            else:
+                sim12 = (site12N - sim12)/site12N
         else:
             sim12 = site12N - sim12
     return sim12
+
 @nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.float64[:,:],nb.boolean), nopython = True)
 def nb_seq_distance(seq1, seq2, substMat, normed = False):
     """Compare two sequences and return the distance from one to the other

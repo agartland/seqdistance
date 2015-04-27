@@ -97,6 +97,7 @@ def seq2vec(seq):
     for aai,aa in enumerate(seq):
         vec[aai] = FULL_AALPHABET.index(aa)
     return vec
+
 def seqs2mat(seqs):
     """Convert a collection of AA sequences into a
     numpy matrix of integers for fast comparison.
@@ -305,8 +306,11 @@ def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, syme
         symetric = False
 
     """Only compute distances on unique sequences. De-uniquify with inv_uniqi later"""
-    uRowVecs, row_uniqi, row_inv_uniqi = _unique_rows(row_vecs,return_index=True,return_inverse=True)
-    uColVecs, col_uniqi, col_inv_uniqi = _unique_rows(col_vecs,return_index=True,return_inverse=True)
+    #uRowVecs, row_uniqi, row_inv_uniqi = _unique_rows(row_vecs,return_index=True,return_inverse=True)
+    #uColVecs, col_uniqi, col_inv_uniqi = _unique_rows(col_vecs,return_index=True,return_inverse=True)
+
+    uRowVecs = row_vecs
+    uColVecs = col_vecs
 
     drectFunc = _distance_rect_factory(metric, nargs)
     
@@ -319,7 +323,7 @@ def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, syme
         pw = pw - pw.min()
 
     """De-uniquify such that dist is now shape [len(seqs1), len(seqs2)]"""
-    pw = pw[row_inv_uniqi,:][:,col_inv_uniqi]
+    #pw = pw[row_inv_uniqi,:][:,col_inv_uniqi]
 
     return pw
 

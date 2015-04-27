@@ -58,16 +58,17 @@ similarity_equals = [ [('AAAA','AAAA', s, False), 4],
                        [('AAAA-','-AAAA', sGap, True), 3],
                        [('-AAA-','-AAAA', sGap, False), 4],
                        [('-AAA-','-AAAA', sGap, True), 4],
-                       [('AAAAK','-AAAK', nanS, True), 3.55555],
-                       [('AAAA-','-AAAA', nanS, True), 2.25],
-                       [('AAAAK','-AAAK', nanS, False), 4],
+                       [('AAAAK','-AAAK', nanS, True), 4.0],
+                       [('AAAA-','-AAAA', nanS, True), 3.0],
+                       [('AAAAK','-AAAK', nanS, False), 4.0],
                        [('AAAA-','-AAAA', nanS, False), 3],
-                       [('AIAAK','-AAAK', nanS, True), 2.66666],
+                       [('AIAAK','-AAAK', nanS, True), 3],
                        [('AIAAK','-AAAK', nanS, False), 3],
                        [('AAAA-','-AAAA', nanS, False), 3],
-                       [('AAAA-','-AAAA', nanS, True), 2.25],
+                       [('AAAA-','-AAAA', nanS, True), 3],
                        [('-AAA-','-AAAA', nanS, False), 3],
-                       [('-AAAI-','-AAAAK', nanS, True), 2.666666] ]
+                       [('-AAAI-','-AAAAK', nanS, True), 3],
+                       [('AAA----','---KKKK',s,True), 0] ]
 
 distance_equals = [ [('AAAA','AAAA', s, True), 0],
                    [('AAAA','AAAA', s, False), 0],
@@ -85,12 +86,12 @@ distance_equals = [ [('AAAA','AAAA', s, True), 0],
                    [('AAAAK','-AAAK', nanS, False), 0],
                    [('AAAA-','-AAAA', nanS, False), 0],
                    [('AIAAK','-AAAK', nanS, False), 1],
-                   [('-AAA-','-AAAA', nanS, False), 0],
-                   [('AAAAK','-AAAK', nanS, True), 0.11111],
-                   [('AAAA-','-AAAA', nanS, True), 0.25],
-                   [('AIAAK','-AAAK', nanS, True), 0.33333],
-                   [('-AAAI-','-AAAAK', nanS, True), 0.33333],
-                   [('AAAA-','-AAAA', nanS, True), 0.25],
+                   [('-AAA-','-AAAA', nanS, False), 0.0],
+                   [('AAAAK','-AAAK', nanS, True), 0.0],
+                   [('AAAA-','-AAAA', nanS, True), 0.0],
+                   [('AIAAK','-AAAK', nanS, True), 0.25],
+                   [('-AAAI-','-AAAAK', nanS, True), 0.25],
+                   [('AAAA-','-AAAA', nanS, True), 0.0],
                    [('AAAA-','-AAAA', nanS, False), 0.0] ]
 
 class TestTools(unittest.TestCase):
@@ -138,10 +139,12 @@ class TestStrMetrics(unittest.TestCase):
         """str_seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = False)
         asDistance = True is tested in seq_distance"""
         for i, (args, res) in enumerate(similarity_equals):
-            self.assertAlmostEqual(strmetrics.str_seq_similarity(*args), res, places = 3, msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
+            self.assertAlmostEqual(strmetrics.str_seq_similarity(*args), res, places = 3, msg = "Test %d: (%s, %s) not %1.2f?" % (i,args[0],args[1],strmetrics.str_seq_similarity(*args)))
 
         with self.assertRaises(AssertionError):
             strmetrics.str_seq_similarity('AAAA','AA')
+
+        self.assertTrue(np.isnan(strmetrics.str_seq_similarity('-------','---KKKK',s,True,False)))
 
     def test_seq_distance(self):
         """str_seq_distance(seq1, seq2, subst = None, normed = True)"""
@@ -196,6 +199,7 @@ class TestNpMetrics(unittest.TestCase):
                 sMat = matrices.subst2mat(args[2])
             self.assertEqual(self.seq_similarity(seq2vec(args[0]),seq2vec(args[1]),sMat,args[3],False),
                              strmetrics.str_seq_similarity(*args), msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
+        self.assertTrue(np.isnan(self.seq_similarity(seq2vec('-------'),seq2vec('---KKKK'),sMat,True,False)))
     def test_coverage_distance(self):
         """np_coverage_distance(seqVec1, seqVec2, mmTolerance))"""
         for i, (args, res) in enumerate(coverage_equals):
@@ -236,7 +240,7 @@ if NB_SUCCESS:
 
 class TestDistRect(unittest.TestCase):
     def setUp(self):
-        self.seq = tools.removeBadAA("MGARASVLSGGELDRWEKIRLRPGGKKKYKLKHIVWASRELERFAVNPGL")
+        self.seq = tools.removeBadAA("MGARA-SVLSGGELDRW-EKIRLRP-GGKKKYKLKHIVW-ASRELERFAVNPGL")
         self.mers = [self.seq[starti:starti + 9] for starti in range(len(self.seq)-9+1)]
         self.mers15 = [self.seq[starti:starti + 15] for starti in range(len(self.seq)-15+1)]
     def test_numpy(self):
