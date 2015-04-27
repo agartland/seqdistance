@@ -30,7 +30,7 @@ __all__ = ['nb_hamming_distance',
            'nb_seq_distance',
            'nb_coverage_distance']
 
-@nb.jit(nb.int8(nb.char[:],nb.char[:]), nopython = True)
+@nb.jit(nb.float64(nb.char[:],nb.char[:]), nopython = True)
 def nb_hamming_distance(str1,str2):
     assert str1.shape[0] == str2.shape[0]
 
@@ -40,8 +40,7 @@ def nb_hamming_distance(str1,str2):
             tot += 1
     return tot
 
-#@nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.float64[:,:],nb.boolean,nb.boolean), nopython = True)
-@nb.jit(nopython = True)
+@nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.float64[:,:],nb.boolean,nb.boolean), nopython = True)
 def nb_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
     """Computes sequence similarity based on the substitution matrix."""
     assert seq1.shape[0] == seq2.shape[0]
@@ -77,8 +76,7 @@ def nb_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
         else:
             sim12 = site12N - sim12
     return sim12
-
-@nb.jit(nopython = True)
+@nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.float64[:,:],nb.boolean), nopython = True)
 def nb_seq_distance(seq1, seq2, substMat, normed = False):
     """Compare two sequences and return the distance from one to the other
     If the seqs are of different length then it raises an exception
@@ -91,8 +89,7 @@ def nb_seq_distance(seq1, seq2, substMat, normed = False):
         [0, siteN]"""
     return nb_seq_similarity(seq1, seq2, substMat, normed, True)
 
-#@nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.int8), nopython = True)
-@nb.jit(nopython = True)
+@nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.int8), nopython = True)
 def nb_coverage_distance(epitope, peptide, mmTolerance = 0):
     """Determines whether pepitide covers epitope
     and can handle epitopes and peptides of different lengths.
