@@ -23,6 +23,7 @@ based on each residue's position in the FULL_AALPHABET.
 
 """
 import numpy as np
+import pandas as pd
 import re
 from Bio import pairwise2
 import matrices
@@ -254,6 +255,13 @@ def _distance_rect_factory(metric,nargs):
         return nb.jit(distance_rect, nopython=True) 
     else:
         return distance_rect
+
+def distance_df(row_seqs, col_seqs, *args, **kwargs):
+    """Calls distance_rect() but returns a pandas DataFrame with peptide sequences
+    as row and column indices."""
+
+    pw = distance_rect(row_seqs, col_seqs, *args, **kwargs)
+    return pd.DataFrame(pw, index = row_seqs, columns = col_seqs)
 
 def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, symetric = False):
     """Returns a rectangular matrix with rows and columns of the sequences in row_seqs and col_seqs.
