@@ -43,12 +43,15 @@ __all__ = ['isvalidpeptide',
            'removeBadAA',
            'seq2vec',
            'seqs2mat',
+           'mat2seqs',
+           'vec2seq',
            'string2byte',
            'seq_similarity',
            'seq_distance',
            'hamming_distance',
            'unalign_similarity',
-           'distance_rect']
+           'distance_rect',
+           'distance_df']
 
 def _unique_rows(a, return_index = False, return_inverse = False, return_counts = False):
     """Performs np.unique on whole rows of matrix a using a "view".
@@ -98,6 +101,10 @@ def seq2vec(seq):
     for aai,aa in enumerate(seq):
         vec[aai] = FULL_AALPHABET.index(aa)
     return vec
+def vec2seq(vec):
+    """Convert a numpy array of integers back into a AA sequence.
+    (opposite of seq2vec())"""
+    return ''.join([FULL_AALPHABET[aai] for aai in vec])
 
 def seqs2mat(seqs):
     """Convert a collection of AA sequences into a
@@ -111,6 +118,10 @@ def seqs2mat(seqs):
         for aai,aa in enumerate(s):
             mat[si,aai] = FULL_AALPHABET.index(aa)
     return mat
+
+def mat2seqs(mat):
+    """Convert a matrix of integers into AA sequences."""
+    return [vec2seq(mat[i,:]) for i in range(mat.shape[0])]
 
 def hamming_distance(str1, str2, asStrings = False):
     """Hamming distance between str1 and str2.
@@ -261,7 +272,7 @@ def distance_df(row_seqs, col_seqs, *args, **kwargs):
     as row and column indices."""
 
     pw = distance_rect(row_seqs, col_seqs, *args, **kwargs)
-    return pd.DataFrame(pw, index = row_seqs, columns = col_seqs)
+    return pd.DataFrame(pw, index = mat2seqs(row_seqs), columns = mat2seqs(col_seqs))
 
 def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, symetric = False):
     """Returns a rectangular matrix with rows and columns of the sequences in row_seqs and col_seqs.
