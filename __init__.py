@@ -21,23 +21,29 @@ import os
 import sys
 
 try:
-    """On Windows it is neccessary to be on the same drive as the LLVM DLL
-    in order to import numba without generating a "Windows Error 161: The specified path is invalid."""
-    curDir = os.getcwd()
-    targetDir = os.path.splitdrive(sys.executable)[0]
-    os.chdir(targetDir)
     import numba as nb
     import nbmetrics
-    print 'Successfully imported numba version %s' % (nb.__version__)
+    print 'seqdistance: Successfully imported numba version %s' % (nb.__version__)
     NB_SUCCESS = True
-except WindowsError:
-    NB_SUCCESS = False
-    print 'Could not load numba\n(may be a path issue try starting python in C:\\)'
+except OSError:
+    try:
+        """On Windows it is neccessary to be on the same drive as the LLVM DLL
+        in order to import numba without generating a "Windows Error 161: The specified path is invalid."""
+        curDir = os.getcwd()
+        targetDir = os.path.splitdrive(sys.executable)[0]
+        os.chdir(targetDir)
+        import numba as nb
+        import nbmetrics
+        print 'seqdistance: Successfully imported numba version %s' % (nb.__version__)
+        NB_SUCCESS = True
+    except OSError:
+        NB_SUCCESS = False
+        print 'seqdistance: Could not load numba\n(may be a path issue try starting python in C:\\)'
+    finally:
+        os.chdir(curDir)
 except ImportError:
     NB_SUCCESS = False
-    print 'Could not load numba'
-finally:
-    os.chdir(curDir)
+    print 'seqdistance: Could not load numba'
 
 from tools import *
 import strmetrics

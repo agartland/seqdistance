@@ -11,7 +11,7 @@ try:
     import tsne
     #import pytsne
 except ImportError:
-    print "Could not load tsne: will be unavailable for embedding."
+    print "seqdistance: Could not load tsne: will be unavailable for embedding."
 
 """TODO:
     (1) Wrap imports in a try so that important doesn't fail without tsne
