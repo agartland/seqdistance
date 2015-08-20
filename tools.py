@@ -180,7 +180,7 @@ def seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = False, 
     if isinstance(seq2,basestring):
         seq2 = seq2vec(seq2)
     if isinstance(subst,dict):
-        subst = subst2mat(subst)
+        subst = matrices.subst2mat(subst)
 
     if NB_SUCCESS:
         return nbmetrics.nb_seq_similarity(seq1, seq2, subst, normed, asDistance)
