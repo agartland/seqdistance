@@ -1,16 +1,11 @@
 import unittest
 import numpy as np
 
-from . import FULL_AALPHABET
-from . import NB_SUCCESS
-import tools
-import strmetrics
-import nbmetrics
-import npmetrics
-import matrices
+import seqdistance as sd
+from seqdistance import metrics
+from seqdistance import matrices
 
-from tools import seq2vec
-from matrices import subst2mat
+from seqdistance.matrices import subst2mat
 
 s = matrices.binarySubst
 sGap = matrices.addGapScores(matrices.binarySubst, matrices.binGapScores)
@@ -96,10 +91,10 @@ distance_equals = [ [('AAAA','AAAA', s, True), 0],
 
 class TestTools(unittest.TestCase):
     def test_seq2vec(self):
-        self.assertTrue(np.all(seq2vec('AKA-') == np.array([ 0,  9,  0, 23], dtype=np.int8)))
+        self.assertTrue(np.all(sd.seq2vec('AKA-') == np.array([ 0,  9,  0, 23], dtype=np.int8)))
     def test_subst2mat(self):
         smat = subst2mat({('A','K'):-3, ('A','A'):7, ('K','K'):5})
-        self.assertEqual(smat.shape[0], len(tools.FULL_AALPHABET))
+        self.assertEqual(smat.shape[0], len(sd.FULL_AALPHABET))
         self.assertEqual(smat.shape[0], smat.shape[1])
         self.assertEqual(len(smat.shape), 2)
         self.assertEqual(smat[FULL_AALPHABET.index('A'),FULL_AALPHABET.index('K')], -3)
@@ -107,13 +102,13 @@ class TestTools(unittest.TestCase):
         self.assertEqual(smat[FULL_AALPHABET.index('A'),FULL_AALPHABET.index('A')], 7)
         self.assertTrue(np.isnan(smat[FULL_AALPHABET.index('A'),FULL_AALPHABET.index('R')]))
     def test_isvalidpeptide(self):
-        self.assertTrue(tools.isvalidpeptide('AKR'))
-        self.assertFalse(tools.isvalidpeptide('AK-'))
-        self.assertFalse(tools.isvalidpeptide('AK#'))
+        self.assertTrue(sd.isvalidpeptide('AKR'))
+        self.assertFalse(sd.isvalidpeptide('AK-'))
+        self.assertFalse(sd.isvalidpeptide('AK#'))
     def test_removeBadAA(self):
-        self.assertEqual(tools.removeBadAA('AKRI#R'),'AKRIR')
-        self.assertEqual(tools.removeBadAA('AKRIR'),'AKRIR')
-        self.assertEqual(tools.removeBadAA('##'),'')
+        self.assertEqual(sd.removeBadAA('AKRI#R'),'AKRIR')
+        self.assertEqual(sd.removeBadAA('AKRIR'),'AKRIR')
+        self.assertEqual(sd.removeBadAA('##'),'')
 
 class TestStrMetrics(unittest.TestCase):
     def setUp(self):
@@ -123,10 +118,10 @@ class TestStrMetrics(unittest.TestCase):
     def test_hamming_distance(self):
         """str_hamming_distance(seq1, seq2)"""
         for args, res in hamming_equals:
-            self.assertEqual(strmetrics.str_hamming_distance(*args), res)
+            self.assertEqual(metrics.str_hamming_distance(*args), res)
 
         with self.assertRaises(AssertionError):
-            strmetrics.str_hamming_distance('AAAA','AA')
+            metrics.str_hamming_distance('AAAA','AA')
 
     def test_coverage_distance(self):
         """str_coverage_distance(epitope, peptide, mmTolerance = 1)
@@ -134,22 +129,22 @@ class TestStrMetrics(unittest.TestCase):
                 covered = 0
                 not-covered = 1"""
         for args, res in coverage_equals:
-            self.assertEqual(strmetrics.str_coverage_distance(*args), res)
+            self.assertEqual(metrics.str_coverage_distance(*args), res)
     def test_seq_similarity(self):
         """str_seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = False)
         asDistance = True is tested in seq_distance"""
         for i, (args, res) in enumerate(similarity_equals):
-            self.assertAlmostEqual(strmetrics.str_seq_similarity(*args), res, places = 3, msg = "Test %d: (%s, %s) not %1.2f?" % (i,args[0],args[1],strmetrics.str_seq_similarity(*args)))
+            self.assertAlmostEqual(metrics.str_seq_similarity(*args), res, places = 3, msg = "Test %d: (%s, %s) not %1.2f?" % (i,args[0],args[1],metrics.str_seq_similarity(*args)))
 
         with self.assertRaises(AssertionError):
-            strmetrics.str_seq_similarity('AAAA','AA')
+            metrics.str_seq_similarity('AAAA','AA')
 
-        self.assertTrue(np.isnan(strmetrics.str_seq_similarity('-------','---KKKK',s,True,False)))
+        self.assertTrue(np.isnan(metrics.str_seq_similarity('-------','---KKKK',s,True,False)))
 
     def test_seq_distance(self):
         """str_seq_distance(seq1, seq2, subst = None, normed = True)"""
         for i, (args, res) in enumerate(distance_equals):
-            self.assertAlmostEqual(strmetrics.str_seq_distance(*args), res, places = 3, msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
+            self.assertAlmostEqual(metrics.str_seq_distance(*args), res, places = 3, msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
 
     def test_unique_rows(self):
         """_unique_rows(a, return_index = False, return_inverse = False, return_counts = False)"""
@@ -162,8 +157,8 @@ class TestStrMetrics(unittest.TestCase):
 
         arr_eq = np.array([1,3,2,1,1,3])
 
-        u_arr = tools._unique_rows(arr)
-        u_arr2, uniqi_arr, inv_uniqi_arr, counts_arr = tools._unique_rows(arr, return_index = True, return_inverse = True, return_counts = True)
+        u_arr = sd._unique_rows(arr)
+        u_arr2, uniqi_arr, inv_uniqi_arr, counts_arr = sd._unique_rows(arr, return_index = True, return_inverse = True, return_counts = True)
         self.assertTrue(np.all(np.equal(u_arr,u_arr2)))        
         u_eq, uniqi_eq, inv_uniqi_eq, counts_eq = np.unique(arr_eq, return_index = True, return_inverse = True, return_counts = True)
         self.assertTrue(np.all(np.equal(uniqi_arr,uniqi_eq)), msg="%s - %s" % (uniqi_arr, uniqi_eq))
@@ -174,20 +169,20 @@ class TestStrMetrics(unittest.TestCase):
 class TestNpMetrics(unittest.TestCase):
     """Numpy metrics"""
     def setUp(self):
-        self.hamming = npmetrics.np_hamming_distance
-        self.seq_similarity = npmetrics.np_seq_similarity
-        self.coverage_distance = npmetrics.np_coverage_distance
-        self.seq_distance = npmetrics.np_seq_distance
+        self.hamming = metrics.np_hamming_distance
+        self.seq_similarity = metrics.np_seq_similarity
+        self.coverage_distance = metrics.np_coverage_distance
+        self.seq_distance = metrics.np_seq_distance
 
     def test_hamming_distance(self):
         """np_hamming_distance(seqVec1, seqVec2)"""
         for args, res in hamming_equals:
             """Check each case against the strmetric"""
-            self.assertEqual(self.hamming(seq2vec(args[0]),seq2vec(args[1])),
-                             strmetrics.str_hamming_distance(*args))
+            self.assertEqual(self.hamming(sd.seq2vec(args[0]),sd.seq2vec(args[1])),
+                             metrics.str_hamming_distance(*args))
 
         with self.assertRaises(AssertionError):
-            self.hamming(seq2vec('AAAA'),seq2vec('AA'))
+            self.hamming(sd.seq2vec('AAAA'),sd.seq2vec('AA'))
 
     def test_seq_similarity(self):
         """np_seq_similarity(seqVec1, seqVec2, substMat, normed, asDistance))"""
@@ -197,15 +192,15 @@ class TestNpMetrics(unittest.TestCase):
                 sMat = matrices.binaryMat
             else:
                 sMat = matrices.subst2mat(args[2])
-            self.assertEqual(self.seq_similarity(seq2vec(args[0]),seq2vec(args[1]),sMat,args[3],False),
-                             strmetrics.str_seq_similarity(*args), msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
-        self.assertTrue(np.isnan(self.seq_similarity(seq2vec('-------'),seq2vec('---KKKK'),sMat,True,False)))
+            self.assertEqual(self.seq_similarity(sd.seq2vec(args[0]),sd.seq2vec(args[1]),sMat,args[3],False),
+                             metrics.str_seq_similarity(*args), msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
+        self.assertTrue(np.isnan(self.seq_similarity(sd.seq2vec('-------'),sd.seq2vec('---KKKK'),sMat,True,False)))
     def test_coverage_distance(self):
         """np_coverage_distance(seqVec1, seqVec2, mmTolerance))"""
         for i, (args, res) in enumerate(coverage_equals):
             """Check each case against the strmetric"""
-            self.assertEqual(self.coverage_distance(seq2vec(args[0]),seq2vec(args[1]),args[2]),
-                             strmetrics.str_coverage_distance(*args), msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
+            self.assertEqual(self.coverage_distance(sd.seq2vec(args[0]),sd.seq2vec(args[1]),args[2]),
+                             metrics.str_coverage_distance(*args), msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
     def test_seq_distance(self):
         """np_seq_distance(seqVec1, seqVec2, substMat, normed))"""
         for i,(args, res) in enumerate(distance_equals):
@@ -214,17 +209,17 @@ class TestNpMetrics(unittest.TestCase):
                 sMat = matrices.binaryMat
             else:
                 sMat = matrices.subst2mat(args[2])
-            self.assertEqual(self.seq_distance(seq2vec(args[0]),seq2vec(args[1]),sMat,args[3]),
-                             strmetrics.str_seq_distance(*args), msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
+            self.assertEqual(self.seq_distance(sd.seq2vec(args[0]),sd.seq2vec(args[1]),sMat,args[3]),
+                             metrics.str_seq_distance(*args), msg = "Test %d: (%s, %s)" % (i,args[0],args[1]))
 if NB_SUCCESS:
     """Don't try to test the numba metrics if numba could not be imported"""
     class TestNbMetrics(TestNpMetrics):
         """Numba metrics"""
         def setUp(self):
-            self.hamming = nbmetrics.nb_hamming_distance
-            self.seq_similarity = nbmetrics.nb_seq_similarity
-            self.coverage_distance = nbmetrics.nb_coverage_distance
-            self.seq_distance = nbmetrics.nb_seq_distance
+            self.hamming = metrics.nb_hamming_distance
+            self.seq_similarity = metrics.nb_seq_similarity
+            self.coverage_distance = metrics.nb_coverage_distance
+            self.seq_distance = metrics.nb_seq_distance
         def test_hamming_distance(self):
             """nb_hamming_distance(seqVec1, seqVec2)"""
             TestNpMetrics.test_hamming_distance(self)
@@ -240,15 +235,15 @@ if NB_SUCCESS:
 
 class TestDistRect(unittest.TestCase):
     def setUp(self):
-        self.seq = tools.removeBadAA("MGARA-SVLSGGELDRW-EKIRLRP-GGKKKYKLKHIVW-ASRELERFAVNPGL")
+        self.seq = sd.removeBadAA("MGARA-SVLSGGELDRW-EKIRLRP-GGKKKYKLKHIVW-ASRELERFAVNPGL")
         self.mers = [self.seq[starti:starti + 9] for starti in range(len(self.seq)-9+1)]
         self.mers15 = [self.seq[starti:starti + 15] for starti in range(len(self.seq)-15+1)]
     def test_numpy(self):
         """distance_rect numpy non-optimized"""
-        pw = tools.distance_rect(self.mers[:10],
+        pw = sd.distance_rect(self.mers[:10],
                                  self.mers[:25],
                                  args = (matrices.binarySubst,),
-                                 metric = npmetrics.np_seq_distance,
+                                 metric = metrics.np_seq_distance,
                                  normalize = False,
                                  symetric = False)
         self.assertEqual(pw.shape[0], 10)
@@ -257,16 +252,16 @@ class TestDistRect(unittest.TestCase):
         self.assertTrue(np.all(np.equal(pw[:10,0], pw[0,:10])))
     def test_numba(self):
         """distance_rect numba optimized"""
-        pw = tools.distance_rect(self.mers[:10],
+        pw = sd.distance_rect(self.mers[:10],
                                  self.mers[:25],
                                  args = (matrices.binarySubst, False),
-                                 metric = nbmetrics.nb_seq_distance,
+                                 metric = metrics.nb_seq_distance,
                                  normalize = False,
                                  symetric = False)
-        pw_np = tools.distance_rect(self.mers[:10],
+        pw_np = sd.distance_rect(self.mers[:10],
                                  self.mers[:25],
                                  args = (matrices.binarySubst,False),
-                                 metric = npmetrics.np_seq_distance,
+                                 metric = metrics.np_seq_distance,
                                  normalize = False,
                                  symetric = False)
         self.assertTrue(np.all(np.equal(pw,pw_np)))
@@ -275,44 +270,43 @@ class TestDistRect(unittest.TestCase):
         self.assertTrue(np.all(np.equal(np.array([0.,9.,8.,8.,9.,8.,9.,9.,8.,8.]), pw[0,:10])))
         self.assertTrue(np.all(np.equal(pw[:10,0], pw[0,:10])))
 
-        pw = tools.distance_rect(self.mers[:25],
+        pw = sd.distance_rect(self.mers[:25],
                                  self.mers[:25],
                                  args = (matrices.binarySubst, True),
-                                 metric = nbmetrics.nb_seq_distance,
+                                 metric = metrics.nb_seq_distance,
                                  normalize = True,
                                  symetric = False)
-        pw_np = tools.distance_rect(self.mers[:25],
+        pw_np = sd.distance_rect(self.mers[:25],
                                  self.mers[:25],
                                  args = (matrices.binarySubst, True),
-                                 metric = npmetrics.np_seq_distance,
+                                 metric = metrics.np_seq_distance,
                                  normalize = False,
                                  symetric = True)
         self.assertTrue(np.all(np.equal(pw,pw_np)))
     def test_np_coverage(self):
         """distance_rect w/ coverage_distance"""
-        pw = tools.distance_rect(self.mers[:10],
+        pw = sd.distance_rect(self.mers[:10],
                                  self.mers15[:12],
                                  args = (1,),
-                                 metric = npmetrics.np_coverage_distance,
+                                 metric = metrics.np_coverage_distance,
                                  normalize = False,
                                  symetric = False)
         self.assertEqual(pw.shape[0], 10)
         self.assertEqual(pw.shape[1], 12)
     def test_nb_coverage(self):
         """distance_rect numba optimized w/ coverage_distance"""
-        pw = tools.distance_rect(self.mers[:10],
+        pw = sd.distance_rect(self.mers[:10],
                                  self.mers15[:13],
                                  args = (1,),
-                                 metric = nbmetrics.nb_coverage_distance,
+                                 metric = metrics.nb_coverage_distance,
                                  normalize = False,
                                  symetric = False)
-        pw_np = tools.distance_rect(self.mers[:10],
+        pw_np = sd.distance_rect(self.mers[:10],
                                  self.mers15[:13],
                                  args = (1,),
-                                 metric = npmetrics.np_coverage_distance,
+                                 metric = metrics.np_coverage_distance,
                                  normalize = False,
                                  symetric = False)
         self.assertEqual(pw.shape[0], 10)
         self.assertEqual(pw.shape[1], 13)
         self.assertTrue(np.all(np.equal(pw,pw_np)))
-

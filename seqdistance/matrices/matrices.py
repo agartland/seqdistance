@@ -24,25 +24,9 @@ import numpy as np
 from copy import deepcopy
 import itertools
 
-from . import FULL_AALPHABET
-from . import AALPHABET
+from seqdistance import BADAA, FULL_AALPHABET, AALPHABET
 
-__all__ = ['nanGapScores',
-           'nanZeroGapScores',
-           'binGapScores',
-           'blosum90GapScores',
-           'binarySubst',
-           'binaryMat',
-           'identMat',
-           'blosum62Mat',
-           'blosum90Mat',
-           'addGapScores',
-           'blosum90',
-           'ident',
-           'blosum62']
-           
-           
-def subst2mat(subst, alphabet = FULL_AALPHABET):
+def subst2mat(subst, alphabet = None):
     """Converts a substitution dictionary
     (like those from Bio) into a numpy 2d substitution matrix.
 
@@ -52,6 +36,8 @@ def subst2mat(subst, alphabet = FULL_AALPHABET):
     Missing substitutions are nan.
 
     Return type is float64"""
+    if alphabet is None:
+        alphabet = FULL_AALPHABET
     mat = np.nan * np.zeros((len(alphabet),len(alphabet)), dtype = np.float64)
     ij = np.zeros((len(subst),2),dtype=np.int)
     for ki,((aa1,aa2),v) in enumerate(subst.items()):

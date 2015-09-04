@@ -13,22 +13,13 @@ Templates:
 d = nb_metric(seqVec1, seqVec2, substMat, **kwargs)
 
 pwdist = nb_dist_rect(seqMat1, seqMat2, substMat, **kwargs)
-
-
 """
 
 """NOTE: The default kwargs used here will not jit with numba as of version 0.18.2"""
 
 import numpy as np
-
 """Can assume NB_SUCCESS is True if this module is imported at all."""
-from . import NB_SUCCESS
-from . import nb
-
-__all__ = ['nb_hamming_distance',
-           'nb_seq_similarity',
-           'nb_seq_distance',
-           'nb_coverage_distance']
+import numba as nb
 
 @nb.jit(nb.float64(nb.char[:],nb.char[:]), nopython = True)
 def nb_hamming_distance(str1,str2):

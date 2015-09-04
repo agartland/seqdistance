@@ -8,18 +8,11 @@ d = str_metric(seq1, seq2, **kwargs)
 
 
 """
-import matrices
-
-__all__ = ['str_hamming_distance',
-           'trunc_hamming',
-           'dichot_hamming',
-           'str_coverage_distance',
-           'str_seq_distance',
-           'str_seq_similarity']
-
 import itertools
 import operator
 import numpy as np
+
+from .. import matrices
 
 def str_hamming_distance(str1, str2):
     """Hamming distance between str1 and str2."""

@@ -26,32 +26,16 @@ import numpy as np
 import pandas as pd
 import re
 from Bio import pairwise2
-import matrices
-import npmetrics
-import strmetrics
-from . import FULL_AALPHABET
-from . import BADAA
-from . import NB_SUCCESS
 
-if NB_SUCCESS:
-    from . import nb
-    import nbmetrics
+
+from . import BADAA, FULL_AALPHABET, AALPHABET
+from . import matrices
+from . import metrics
+
+if metrics.NB_SUCCESS:
+    import numba as nb
 else:
     nb = None
-
-__all__ = ['isvalidpeptide',
-           'removeBadAA',
-           'seq2vec',
-           'seqs2mat',
-           'mat2seqs',
-           'vec2seq',
-           'string2byte',
-           'seq_similarity',
-           'seq_distance',
-           'hamming_distance',
-           'unalign_similarity',
-           'distance_rect',
-           'distance_df']
 
 def _unique_rows(a, return_index = False, return_inverse = False, return_counts = False):
     """Performs np.unique on whole rows of matrix a using a "view".
@@ -132,7 +116,7 @@ def hamming_distance(str1, str2, asStrings = False):
     if asStrings:
         assert isinstance(str1, basestring), "Seq1 is not a string."
         assert isinstance(str2, basestring), "Seq1 is not a string."
-        return strmetrics.str_hamming_distance(str1, str2)
+        return metrics.str_hamming_distance(str1, str2)
 
     if isinstance(str1,basestring):
         seqVec1 = seq2vec(str1)
@@ -144,10 +128,10 @@ def hamming_distance(str1, str2, asStrings = False):
     else:
         seqVec2 = str2
 
-    if NB_SUCCESS:
-        return nbmetrics.nb_hamming_distance(seqVec1, seqVec2)
+    if metics.NB_SUCCESS:
+        return metrics.nb_hamming_distance(seqVec1, seqVec2)
     else:
-        return npmetrics.np_hamming_distance(seqVec1, seqVec2)
+        return metrics.np_hamming_distance(seqVec1, seqVec2)
 
 def seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = False, asStrings = False):
     """Compare two sequences and return the similarity of one and the other 
@@ -173,7 +157,7 @@ def seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = False, 
         assert isinstance(str1, basestring), "Seq1 is not a string."
         assert isinstance(str2, basestring), "Seq2 is not a string."
         assert isinstance(subst, dict), "Subst is not a dict."
-        return strmetrics.str_seq_similarity(seq1, seq2, subst = subst, normed = normed, asDistance = asDistance)
+        return metrics.str_seq_similarity(seq1, seq2, subst = subst, normed = normed, asDistance = asDistance)
 
     if isinstance(seq1,basestring):
         seq1 = seq2vec(seq1)
@@ -182,10 +166,10 @@ def seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = False, 
     if isinstance(subst,dict):
         subst = matrices.subst2mat(subst)
 
-    if NB_SUCCESS:
-        return nbmetrics.nb_seq_similarity(seq1, seq2, subst, normed, asDistance)
+    if metrics.NB_SUCCESS:
+        return metrics.nb_seq_similarity(seq1, seq2, subst, normed, asDistance)
     else:
-        return npmetrics.np_seq_similarity(seq1, seq2, subst, normed, asDistance)
+        return metrics.np_seq_similarity(seq1, seq2, subst, normed, asDistance)
 
 def seq_distance(seq1, seq2, subst = None, normed = True, asStrings = False):
     """Compare two sequences and return the distance from one to the other

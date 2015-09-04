@@ -17,9 +17,7 @@ except ImportError:
     (1) Wrap imports in a try so that important doesn't fail without tsne
     (2) Add the plotting function for visualizing an embedding."""
 
-__all__ = ['embedDistanceMatrix']
-
-def embedDistanceMatrix(dist,method='tsne'):
+def embedDistanceMatrix(dist, method='tsne'):
     """MDS embedding of sequence distances in dist, returning Nx2 x,y-coords: tsne, isomap, pca, mds, kpca"""
     if method == 'tsne':
         xy = tsne.run_tsne(dist,no_dims=2)

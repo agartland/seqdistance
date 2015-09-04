@@ -17,13 +17,7 @@ d = np_metric(seqVec1, seqVec2, substMat, **kwargs)
 pwdist = np_dist_rect(seqMat1, seqMat2, substMat, **kwargs)
 
 """
-
 import numpy as np
-
-__all__ = ['np_seq_similarity',
-           'np_hamming_distance',
-           'np_seq_distance',
-           'np_coverage_distance']
 
 def np_hamming_distance(seqVec1, seqVec2):
     """Hamming distance between str1 and str2."""
