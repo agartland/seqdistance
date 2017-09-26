@@ -32,17 +32,17 @@ def np_hamming_distance(seqVec1, seqVec2):
 
 def np_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
     """Computes sequence similarity based on the substitution matrix."""
-    assert seq1.shape[0] == seq2.shape[0], "Sequences must be the same length (%d != %d)." % (seq1.shape[0],seq2.shape[0])
+    assert seq1.shape[0] == seq2.shape[0], "Sequences must be the same length (%d != %d)." % (seq1.shape[0], seq2.shape[0])
 
     """Similarity between seq1 and seq2 using the substitution matrix subst"""
-    sim12 = substMat[seq1,seq2]
+    sim12 = substMat[seq1, seq2]
 
     if normed or asDistance:
         siteN = (~np.isnan(sim12)).sum()
 
     if normed:
-        sim11 = substMat[seq1,seq1]
-        sim22 = substMat[seq2,seq2]
+        sim11 = substMat[seq1, seq1]
+        sim22 = substMat[seq2, seq2]
 
         site11N = (~np.isnan(sim11)).sum()
         site22N = (~np.isnan(sim22)).sum()
@@ -97,14 +97,14 @@ def np_coverage_distance(epitope, peptide, mmTolerance = 0):
     -------
     covered : int
         Covered (0) or not-covered (1)"""
-    assert type(epitope) == np.ndarray
-    assert type(peptide) == np.ndarray
+    assert isinstance(epitope, np.ndarray)
+    assert isinstance(peptide, np.ndarray)
 
     LEpitope, LPeptide = len(epitope), len(peptide)
     if LEpitope > LPeptide:
         return 1
 
     for starti in range(LPeptide-LEpitope+1):
-        if np.sum(np.not_equal(epitope,peptide[starti:starti+LEpitope])) <= mmTolerance:
+        if np.sum(np.not_equal(epitope, peptide[starti:starti+LEpitope])) <= mmTolerance:
             return 0
     return 1

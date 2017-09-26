@@ -30,17 +30,18 @@ __all__ = ['nb_hamming_distance',
            'nb_seq_distance',
            'nb_coverage_distance']
 
-@nb.jit(nb.float64(nb.char[:],nb.char[:]), nopython = True)
-def nb_hamming_distance(str1,str2):
+@nb.jit(nb.float64(nb.char[:], nb.char[:]), nopython = True)
+def nb_hamming_distance(str1, str2):
     assert str1.shape[0] == str2.shape[0]
 
     tot = 0
-    for s1,s2 in zip(str1,str2):
-        if s1 != s2:
+    i = 0
+    for i in range(str1.shape[0]):
+        if str1[i] != str2[i]:
             tot += 1
     return tot
 
-@nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.float64[:,:],nb.boolean,nb.boolean), nopython = True)
+@nb.jit(nb.float64(nb.int8[:], nb.int8[:], nb.float64[:,:], nb.boolean, nb.boolean), nopython = True)
 def nb_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
     """Computes sequence similarity based on the substitution matrix."""
     assert seq1.shape[0] == seq2.shape[0]
@@ -54,9 +55,9 @@ def nb_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
         sim11 = 0.
         sim22 = 0.
         for i in range(seq1.shape[0]):
-            cur12 = substMat[seq1[i],seq2[i]]
-            cur11 = substMat[seq1[i],seq1[i]]
-            cur22 = substMat[seq2[i],seq2[i]]
+            cur12 = substMat[seq1[i], seq2[i]]
+            cur11 = substMat[seq1[i], seq1[i]]
+            cur22 = substMat[seq2[i], seq2[i]]
             if not np.isnan(cur12):
                 sim12 += cur12
                 site12N += 1.
@@ -73,7 +74,7 @@ def nb_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
     else:
         sim12 = 0.
         for i in range(seq1.shape[0]):
-            cur12 = substMat[seq1[i],seq2[i]]
+            cur12 = substMat[seq1[i], seq2[i]]
             if not np.isnan(cur12):
                 sim12 += cur12
                 site12N += 1.
@@ -88,7 +89,7 @@ def nb_seq_similarity(seq1, seq2, substMat, normed = True, asDistance = False):
             sim12 = site12N - sim12
     return sim12
 
-@nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.float64[:,:],nb.boolean), nopython = True)
+@nb.jit(nb.float64(nb.int8[:], nb.int8[:], nb.float64[:,:], nb.boolean), nopython = True)
 def nb_seq_distance(seq1, seq2, substMat, normed = False):
     """Compare two sequences and return the distance from one to the other
     If the seqs are of different length then it raises an exception
@@ -101,7 +102,7 @@ def nb_seq_distance(seq1, seq2, substMat, normed = False):
         [0, siteN]"""
     return nb_seq_similarity(seq1, seq2, substMat, normed, True)
 
-@nb.jit(nb.float64(nb.int8[:],nb.int8[:],nb.int8), nopython = True)
+@nb.jit(nb.float64(nb.int8[:], nb.int8[:], nb.int8), nopython = True)
 def nb_coverage_distance(epitope, peptide, mmTolerance = 0):
     """Determines whether pepitide covers epitope
     and can handle epitopes and peptides of different lengths.

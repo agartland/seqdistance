@@ -8,7 +8,7 @@ d = str_metric(seq1, seq2, **kwargs)
 
 
 """
-import matrices
+from . import matrices
 
 __all__ = ['str_hamming_distance',
            'trunc_hamming',
@@ -24,18 +24,18 @@ import numpy as np
 def str_hamming_distance(str1, str2):
     """Hamming distance between str1 and str2."""
     assert len(str1) == len(str2), "Inputs must have the same length."
-    return np.sum([i for i in itertools.imap(operator.__ne__, str1, str2)])
+    return np.sum([i for i in map(operator.__ne__, str1, str2)])
   
 def str_trunc_hamming(seq1, seq2, maxDist=2):
     """Truncated hamming distance
     d = str_hamming() if d<maxDist else d = maxDist"""
-    d = str_hamming_distance(seq1,seq2)
+    d = str_hamming_distance(seq1, seq2)
     return maxDist if d >= maxDist else d
 
 def dichot_hamming(seq1, seq2, mmTolerance=1):
     """Dichotamized hamming distance.
     hamming <= mmTolerance is 0 and all others are 1"""
-    d = str_hamming_distance(seq1,seq2)
+    d = str_hamming_distance(seq1, seq2)
     return 1 if d > mmTolerance else 0
 
 def str_seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = False):
@@ -57,7 +57,7 @@ def str_seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = Fal
         d = siteN - sim
     which is a total normed distance, not a per site distance"""
 
-    assert len(seq1) == len(seq2), "len of seq1 (%d) and seq2 (%d) are different" % (len(seq1),len(seq2))
+    assert len(seq1) == len(seq2), "len of seq1 (%d) and seq2 (%d) are different" % (len(seq1), len(seq2))
 
     """if subst is matrices.binarySubst:
         dist = str_hamming_distance(seq1,seq2)
@@ -67,17 +67,17 @@ def str_seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = Fal
         return sim"""
 
     if subst is None:
-        subst = matrices.addGapScores(matrices.binarySubst,matrices.binGapScores)
+        subst = matrices.addGapScores(matrices.binarySubst, matrices.binGapScores)
 
     """Site-wise similarity between seq1 and seq2 using the substitution matrix subst"""
-    sim12 = np.array([i for i in itertools.imap(lambda a,b: subst.get((a,b),subst.get((b,a),np.nan)), seq1, seq2)])
+    sim12 = np.array([i for i in map(lambda a, b: subst.get((a, b), subst.get((b, a), np.nan)), seq1, seq2)])
 
     if normed or asDistance:
         siteN = np.sum(~np.isnan(sim12))
 
     if normed:
-        sim11 = np.array([i for i in itertools.imap(lambda a,b: subst.get((a,b),subst.get((b,a),np.nan)), seq1, seq1)])
-        sim22 = np.array([i for i in itertools.imap(lambda a,b: subst.get((a,b),subst.get((b,a),np.nan)), seq2, seq2)])
+        sim11 = np.array([i for i in map(lambda a, b: subst.get((a, b), subst.get((b, a), np.nan)), seq1, seq1)])
+        sim22 = np.array([i for i in map(lambda a, b: subst.get((a, b), subst.get((b, a), np.nan)), seq2, seq2)])
         site11N = np.sum(~np.isnan(sim11))
         site22N = np.sum(~np.isnan(sim22))
         if site11N == 0 or site22N == 0:
@@ -139,6 +139,6 @@ def str_coverage_distance(epitope, peptide, mmTolerance = 1):
     if LEpitope > LPeptide:
         return 1
 
-    min_dist = np.array([np.sum([i for i in itertools.imap(operator.__ne__, epitope, peptide[starti:starti+LEpitope])]) for starti in range(LPeptide-LEpitope+1)]).min()
+    min_dist = np.array([np.sum([i for i in map(operator.__ne__, epitope, peptide[starti:starti+LEpitope])]) for starti in range(LPeptide-LEpitope+1)]).min()
     
     return 0 if min_dist <= mmTolerance else 1

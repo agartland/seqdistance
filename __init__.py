@@ -1,4 +1,4 @@
-from __future__ import division
+
 """
 Optimized genetic distance/similarity module for python.
 ========================================================
@@ -22,8 +22,8 @@ import sys
 
 try:
     import numba as nb
-    import nbmetrics
-    print 'seqdistance: Successfully imported numba version %s' % (nb.__version__)
+    from . import nbmetrics
+    print('seqdistance: Successfully imported numba version %s' % (nb.__version__))
     NB_SUCCESS = True
 except OSError:
     try:
@@ -33,23 +33,23 @@ except OSError:
         targetDir = os.path.splitdrive(sys.executable)[0]
         os.chdir(targetDir)
         import numba as nb
-        import nbmetrics
-        print 'seqdistance: Successfully imported numba version %s' % (nb.__version__)
+        from . import nbmetrics
+        print('seqdistance: Successfully imported numba version %s' % (nb.__version__))
         NB_SUCCESS = True
     except OSError:
         NB_SUCCESS = False
-        print 'seqdistance: Could not load numba\n(may be a path issue try starting python in C:\\)'
+        print('seqdistance: Could not load numba\n(may be a path issue try starting python in C:\\)')
     finally:
         os.chdir(curDir)
 except ImportError:
     NB_SUCCESS = False
-    print 'seqdistance: Could not load numba'
+    print('seqdistance: Could not load numba')
 
-from tools import *
-import strmetrics
-import plotting
-import npmetrics
-import matrices
+from .tools import *
+from . import strmetrics
+from . import plotting
+from . import npmetrics
+from . import matrices
 
 __all__ = ['npmetrics',
            'strmetrics',

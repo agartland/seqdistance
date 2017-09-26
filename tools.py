@@ -26,16 +26,16 @@ import numpy as np
 import pandas as pd
 import re
 from Bio import pairwise2
-import matrices
-import npmetrics
-import strmetrics
+from . import matrices
+from . import npmetrics
+from . import strmetrics
 from . import FULL_AALPHABET
 from . import BADAA
 from . import NB_SUCCESS
 
 if NB_SUCCESS:
     from . import nb
-    import nbmetrics
+    from . import nbmetrics
 else:
     nb = None
 
@@ -56,7 +56,7 @@ __all__ = ['isvalidpeptide',
 def _unique_rows(a, return_index = False, return_inverse = False, return_counts = False):
     """Performs np.unique on whole rows of matrix a using a "view".
     See http://stackoverflow.com/a/16971324/74616"""
-    dummy,uniqi,inv_uniqi,counts = np.unique(a.view(a.dtype.descr * a.shape[1]), return_index = True, return_inverse = True, return_counts = True)
+    dummy, uniqi, inv_uniqi, counts = np.unique(a.view(a.dtype.descr * a.shape[1]), return_index = True, return_inverse = True, return_counts = True)
     out = [a[uniqi,:]]
     if return_index:
         out.append(uniqi)
@@ -72,7 +72,7 @@ def isvalidpeptide(mer, badaa = None):
     if badaa is None:
         badaa = BADAA
     if not mer is None:
-        return not re.search('[%s]' % badaa,mer)
+        return not re.search('[%s]' % badaa, mer)
     else:
         return False
 def removeBadAA(mer, badaa = None):
@@ -80,12 +80,12 @@ def removeBadAA(mer, badaa = None):
     if badaa is None:
         badaa = BADAA
     if not mer is None:
-        return re.sub('[%s]' % badaa,'',mer)
+        return re.sub('[%s]' % badaa, '', mer)
     else:
         return mer
 def string2byte(s):
     """Convert string to byte array since numba can't handle strings"""
-    if isinstance(s,basestring):
+    if isinstance(s, str):
         s = np.array(s)
     dtype = s.dtype
     if dtype is np.dtype('byte'):
@@ -98,7 +98,7 @@ def string2byte(s):
 def seq2vec(seq):
     """Convert AA sequence into numpy vector of integers for fast comparison"""
     vec = np.zeros(len(seq), dtype = np.int8)
-    for aai,aa in enumerate(seq):
+    for aai, aa in enumerate(seq):
         vec[aai] = FULL_AALPHABET.index(aa)
     return vec
 def vec2seq(vec):
@@ -112,11 +112,11 @@ def seqs2mat(seqs):
 
     Requires all seqs to have the same length."""
     L1 = len(seqs[0])
-    mat = np.zeros((len(seqs),L1), dtype = np.int8)
-    for si,s in enumerate(seqs):
-        assert L1 == len(s), "All sequences must have the same length: L1 = %d, but L%d = %d" % (L1,si,len(s))
-        for aai,aa in enumerate(s):
-            mat[si,aai] = FULL_AALPHABET.index(aa)
+    mat = np.zeros((len(seqs), L1), dtype = np.int8)
+    for si, s in enumerate(seqs):
+        assert L1 == len(s), "All sequences must have the same length: L1 = %d, but L%d = %d" % (L1, si, len(s))
+        for aai, aa in enumerate(s):
+            mat[si, aai] = FULL_AALPHABET.index(aa)
     return mat
 
 def mat2seqs(mat):
@@ -130,16 +130,16 @@ def hamming_distance(str1, str2, asStrings = False):
     REMOVED **kwargs which were there so that this could be plugged in place of a seq_distance() metric"""
 
     if asStrings:
-        assert isinstance(str1, basestring), "Seq1 is not a string."
-        assert isinstance(str2, basestring), "Seq1 is not a string."
+        assert isinstance(str1, str), "Seq1 is not a string."
+        assert isinstance(str2, str), "Seq1 is not a string."
         return strmetrics.str_hamming_distance(str1, str2)
 
-    if isinstance(str1,basestring):
+    if isinstance(str1, str):
         seqVec1 = seq2vec(str1)
     else:
         seqVec1 = str1
 
-    if isinstance(str2,basestring):
+    if isinstance(str2, str):
         seqVec2 = seq2vec(str2)
     else:
         seqVec2 = str2
@@ -166,20 +166,20 @@ def seq_similarity(seq1, seq2, subst = None, normed = True, asDistance = False, 
         otherwise its just the sum of the raw score out of the subst matrix"""
 
     if subst is None:
-        print 'Using default binarySubst matrix with binGaps for seq_similarity'
+        print('Using default binarySubst matrix with binGaps for seq_similarity')
         subst = matrices.addGapScores(matrices.binarySubst, matrices.binGapScores)
 
     if asStrings:
-        assert isinstance(str1, basestring), "Seq1 is not a string."
-        assert isinstance(str2, basestring), "Seq2 is not a string."
+        assert isinstance(str1, str), "Seq1 is not a string."
+        assert isinstance(str2, str), "Seq2 is not a string."
         assert isinstance(subst, dict), "Subst is not a dict."
         return strmetrics.str_seq_similarity(seq1, seq2, subst = subst, normed = normed, asDistance = asDistance)
 
-    if isinstance(seq1,basestring):
+    if isinstance(seq1, str):
         seq1 = seq2vec(seq1)
-    if isinstance(seq2,basestring):
+    if isinstance(seq2, str):
         seq2 = seq2vec(seq2)
-    if isinstance(subst,dict):
+    if isinstance(subst, dict):
         subst = matrices.subst2mat(subst)
 
     if NB_SUCCESS:
@@ -210,62 +210,70 @@ def unalign_similarity(seq1, seq2, subst = None):
     res = pairwise2.align.globaldx(seq1, seq2, subst)
     return res[0][2]
 
-def _distance_rect_factory(metric,nargs): 
+def _distance_rect_factory(metric, nargs): 
     """Can be passed a numba jit'd distance function and
     will return a jit'd function for computing all pairwise distances using that function"""
 
-    def distance_rect0(pwdist,symetric,seq_vecs1,seq_vecs2): 
-        n,m = pwdist.shape
+    def distance_rect0(pwdist, symetric, seq_vecs1, seq_vecs2): 
+        n, m = pwdist.shape
         for i in range(n): 
             for j in range(m): 
                 if not symetric:
-                    pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:])
+                    pwdist[i, j] = metric(seq_vecs1[i,:], seq_vecs2[j,:])
                 else:
                     if j <= i:
-                        pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:])
-                        pwdist[j,i] = pwdist[i,j]
+                        pwdist[i, j] = metric(seq_vecs1[i,:], seq_vecs2[j,:])
+                        pwdist[j, i] = pwdist[i, j]
         return True
-    def distance_rect1(pwdist,symetric,seq_vecs1,seq_vecs2,arg1): 
-        n,m = pwdist.shape
+    def distance_rect1(pwdist, symetric, seq_vecs1, seq_vecs2, arg1): 
+        n, m = pwdist.shape
         for i in range(n): 
             for j in range(m): 
                 if not symetric:
-                    pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1)
+                    pwdist[i, j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1)
                 else:
                     if j <= i:
-                        pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1)
-                        pwdist[j,i] = pwdist[i,j]
+                        pwdist[i, j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1)
+                        pwdist[j, i] = pwdist[i, j]
         return True
-    def distance_rect2(pwdist,symetric,seq_vecs1,seq_vecs2,arg1,arg2): 
-        n,m = pwdist.shape
+    def distance_rect2(pwdist, symetric, seq_vecs1, seq_vecs2, arg1, arg2): 
+        n, m = pwdist.shape
         for i in range(n): 
             for j in range(m): 
                 if not symetric:
-                    pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2)
+                    pwdist[i, j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2)
                 else:
                     if j <= i:
-                        pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2)
-                        pwdist[j,i] = pwdist[i,j]
+                        pwdist[i, j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2)
+                        pwdist[j, i] = pwdist[i, j]
         return True
-    def distance_rect3(pwdist,symetric,seq_vecs1,seq_vecs2,arg1,arg2,arg3): 
-        n,m = pwdist.shape
+    def distance_rect3(pwdist, symetric, seq_vecs1, seq_vecs2, arg1, arg2, arg3): 
+        n, m = pwdist.shape
         for i in range(n): 
             for j in range(m): 
                 if not symetric:
-                    pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2, arg3)
+                    pwdist[i, j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2, arg3)
                 else:
                     if j <= i:
-                        pwdist[i,j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2, arg3)
-                        pwdist[j,i] = pwdist[i,j]
+                        pwdist[i, j] = metric(seq_vecs1[i,:], seq_vecs2[j,:], arg1, arg2, arg3)
+                        pwdist[j, i] = pwdist[i, j]
         return True
 
-    distance_rect = [distance_rect0,distance_rect1,distance_rect2,distance_rect3][nargs]
+    distance_rect = [distance_rect0, distance_rect1, distance_rect2, distance_rect3][nargs]
+
+    """Code below stopped working in version update. This is untested, but I hope it will work"""
+    try:
+        return nb.jit(distance_rect, nopython=True) 
+    except:
+        return distance_rect
     
-    if isinstance(metric,nb.targets.registry.CPUOverloaded):
+    """
+    if isinstance(metric, nb.targets.registry.CPUOverloaded):
         #return distance_rect
         return nb.jit(distance_rect, nopython=True) 
     else:
         return distance_rect
+    """
 
 def distance_df(row_seqs, col_seqs, *args, **kwargs):
     """Calls distance_rect() but returns a pandas DataFrame with peptide sequences
@@ -309,12 +317,12 @@ def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, syme
 
     argList = list(args)
     if nargs > 0:
-        if type(args[0]) is dict:
+        if isinstance(args[0], dict):
             argList[0] = matrices.subst2mat(args[0])
         elif args[0] is None:
             argList[0] = matrices.subst2mat(matrices.addGapScores(matrices.binarySubst, matrices.binGapScores))
 
-    if not isinstance(row_seqs,np.ndarray) or not row_seqs.dtype == np.int8:
+    if not isinstance(row_seqs, np.ndarray) or not row_seqs.dtype == np.int8:
         row_vecs = seqs2mat(row_seqs)
         col_vecs = seqs2mat(col_seqs)
     else:
@@ -333,7 +341,7 @@ def distance_rect(row_seqs, col_seqs, metric, args = (), normalize = False, syme
 
     drectFunc = _distance_rect_factory(metric, nargs)
     
-    pw = np.zeros((uRowVecs.shape[0],uColVecs.shape[0]),dtype = np.float64)
+    pw = np.zeros((uRowVecs.shape[0], uColVecs.shape[0]), dtype = np.float64)
 
     success = drectFunc(pw, symetric, uRowVecs, uColVecs, *tuple(argList))
     assert success

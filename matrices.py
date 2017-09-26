@@ -52,18 +52,18 @@ def subst2mat(subst, alphabet = FULL_AALPHABET):
     Missing substitutions are nan.
 
     Return type is float64"""
-    mat = np.nan * np.zeros((len(alphabet),len(alphabet)), dtype = np.float64)
-    ij = np.zeros((len(subst),2),dtype=np.int)
-    for ki,((aa1,aa2),v) in enumerate(subst.items()):
-        i,j = alphabet.index(aa1),alphabet.index(aa2)
-        ij[ki,:] = [i,j]
-        mat[i,j] = v
+    mat = np.nan * np.zeros((len(alphabet), len(alphabet)), dtype = np.float64)
+    ij = np.zeros((len(subst), 2), dtype=np.int)
+    for ki, ((aa1, aa2), v) in enumerate(subst.items()):
+        i, j = alphabet.index(aa1), alphabet.index(aa2)
+        ij[ki,:] = [i, j]
+        mat[i, j] = v
     for ki in range(ij.shape[0]):
         """Go back through all the assignments and make the symetrical assignments
         if the value is still nan (i.e. otherwise unspecified)"""
-        i,j = ij[ki,0], ij[ki,1]
-        if np.isnan(mat[j,i]):
-            mat[j,i] = mat[i,j]
+        i, j = ij[ki, 0], ij[ki, 1]
+        if np.isnan(mat[j, i]):
+            mat[j, i] = mat[i, j]
     return mat
 
 def addGapScores(subst, gapScores = None, minScorePenalty = False, returnMat = False):
@@ -78,23 +78,23 @@ def addGapScores(subst, gapScores = None, minScorePenalty = False, returnMat = F
                              ('X','-'):-11}
     """
     if minScorePenalty:
-        gapScores = {('-','-') : 1,
-                     ('-','X') : np.min(subst.values()),
-                     ('X','-') : np.min(subst.values())}
+        gapScores = {('-', '-') : 1,
+                     ('-', 'X') : np.min(list(subst.values())),
+                     ('X', '-') : np.min(list(subst.values()))}
     elif gapScores is None:
         if subst is binarySubst:
-            print 'Using default binGapScores for binarySubst'
+            print('Using default binGapScores for binarySubst')
             gapScores = binGapScores
         elif subst is blosum90:
-            print 'Using default blosum90 gap scores'
+            print('Using default blosum90 gap scores')
             gapScores = blosum90GapScores
         else:
             raise Exception('Cannot determine which gap scores to use!')
     su = deepcopy(subst)
-    uAA = np.unique([k[0] for k in subst.keys()])
-    su.update({('-',aa) : gapScores[('-','X')] for aa in uAA})
-    su.update({(aa,'-') : gapScores[('X','-')] for aa in uAA})
-    su.update({('-','-') : gapScores[('-','-')]})
+    uAA = np.unique([k[0] for k in list(subst.keys())])
+    su.update({('-', aa) : gapScores[('-', 'X')] for aa in uAA})
+    su.update({(aa, '-') : gapScores[('X', '-')] for aa in uAA})
+    su.update({('-', '-') : gapScores[('-', '-')]})
 
     if returnMat:
         return subst2mat(su)
@@ -102,23 +102,23 @@ def addGapScores(subst, gapScores = None, minScorePenalty = False, returnMat = F
 
 
 """Many different ways of handling gaps. Remember that these are SIMILARITY scores"""
-nanGapScores = {('-','-'):np.nan,
-                ('-','X'):np.nan,
-                ('X','-'):np.nan}
+nanGapScores = {('-', '-'):np.nan,
+                ('-', 'X'):np.nan,
+                ('X', '-'):np.nan}
 
-nanZeroGapScores = {('-','-'):np.nan,
-                     ('-','X'):0,
-                     ('X','-'):0}
+nanZeroGapScores = {('-', '-'):np.nan,
+                     ('-', 'X'):0,
+                     ('X', '-'):0}
 """Default for addGapScores()"""
-binGapScores = {('-','-'):1,
-                ('-','X'):0,
-                ('X','-'):0}
+binGapScores = {('-', '-'):1,
+                ('-', 'X'):0,
+                ('X', '-'):0}
 """Arbitrary/reasonable values (extremes for blosum90 I think)"""
-blosum90GapScores = {('-','-'):5,
-                     ('-','X'):-11,
-                     ('X','-'):-11}
+blosum90GapScores = {('-', '-'):5,
+                     ('-', 'X'):-11,
+                     ('X', '-'):-11}
 
-binarySubst = {(aa1,aa2):np.float64(aa1==aa2) for aa1,aa2 in itertools.product(AALPHABET, AALPHABET)}
+binarySubst = {(aa1, aa2):np.float64(aa1==aa2) for aa1, aa2 in itertools.product(AALPHABET, AALPHABET)}
 
 identMat = subst2mat(ident)
 blosum90Mat = subst2mat(blosum90)
